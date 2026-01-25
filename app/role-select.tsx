@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, Image, ImageS
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
-import { IconSymbol } from '@/components/IconSymbol';
 
 // Helper to resolve image sources (handles both local require() and remote URLs)
 function resolveImageSource(source: string | number | ImageSourcePropType | undefined): ImageSourcePropType {
@@ -62,14 +61,11 @@ export default function RoleSelectScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.cardContent}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFFFFF' }]}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={20}
-                  color={colors.secondary}
-                />
-              </View>
+              <Image
+                source={resolveImageSource(require('@/assets/images/604e0535-56a5-45e5-8158-e50d359ee50b.png'))}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
               <Text style={[styles.cardTitle, { color: cardTitleColor }]}>{clientText}</Text>
               <Text style={[styles.cardDescription, { color: '#FFFFFF' }]}>
                 {clientDescription}
@@ -83,14 +79,11 @@ export default function RoleSelectScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.cardContent}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFFFFF' }]}>
-                <IconSymbol
-                  ios_icon_name="briefcase.fill"
-                  android_material_icon_name="work"
-                  size={20}
-                  color={colors.secondary}
-                />
-              </View>
+              <Image
+                source={resolveImageSource(require('@/assets/images/30a9442e-2ffc-4dda-802d-cd57460e96e9.png'))}
+                style={styles.cardImage}
+                resizeMode="contain"
+              />
               <Text style={[styles.cardTitle, { color: cardTitleColor }]}>{providerText}</Text>
               <Text style={[styles.cardDescription, { color: '#FFFFFF' }]}>
                 {providerDescription}
@@ -158,12 +151,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cardImage: {
+    width: 60,
+    height: 60,
     marginBottom: 8,
   },
   cardTitle: {
