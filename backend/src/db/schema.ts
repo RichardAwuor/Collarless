@@ -94,6 +94,14 @@ export const counties = pgTable('counties', {
   name: text('name').notNull(),
 });
 
+// Service Categories table (reference data)
+export const serviceCategories = pgTable('service_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // M-Pesa Transactions table
 export const mpesaTransactions = pgTable('mpesa_transactions', {
   id: uuid('id').primaryKey().defaultRandom(),

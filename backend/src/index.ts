@@ -8,6 +8,7 @@ import { registerReviewRoutes } from './routes/reviews.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerProfileRoutes } from './routes/profile.js';
 import { registerMpesaRoutes } from './routes/mpesa.js';
+import { registerCategoryRoutes } from './routes/categories.js';
 
 // Create application with schema for full database type support
 export const app = await createApplication(schema);
@@ -26,9 +27,13 @@ registerReviewRoutes(app, app.fastify);
 registerProviderRoutes(app, app.fastify);
 registerProfileRoutes(app, app.fastify);
 registerMpesaRoutes(app, app.fastify);
+registerCategoryRoutes(app, app.fastify);
 
 // Seed counties data on startup
 await seedCounties();
+
+// Seed service categories on startup
+await seedServiceCategories();
 
 await app.run();
 app.logger.info('Application running');
@@ -114,5 +119,62 @@ async function seedCounties() {
     app.logger.info({ inserted: insertedCount, total: countiesData.length }, 'Counties seeded successfully');
   } catch (error) {
     app.logger.error({ err: error }, 'Failed to seed counties');
+  }
+}
+
+async function seedServiceCategories() {
+  const categoriesData = [
+    { name: 'Plumbing', description: 'Plumbing repairs and installations' },
+    { name: 'Electrical', description: 'Electrical repairs and installations' },
+    { name: 'Carpentry', description: 'Carpentry and woodwork services' },
+    { name: 'Painting', description: 'House and building painting' },
+    { name: 'Masonry', description: 'Masonry and concrete work' },
+    { name: 'Cleaning', description: 'House and office cleaning' },
+    { name: 'Gardening', description: 'Garden and landscaping services' },
+    { name: 'HVAC', description: 'Heating, ventilation, and air conditioning' },
+    { name: 'Roofing', description: 'Roof repairs and installations' },
+    { name: 'Welding', description: 'Welding and metal work' },
+    { name: 'Landscaping', description: 'Landscaping and outdoor design' },
+    { name: 'Catering', description: 'Food catering services' },
+    { name: 'Event Planning', description: 'Event planning and coordination' },
+    { name: 'Security', description: 'Security services' },
+    { name: 'Transportation', description: 'Transportation and delivery services' },
+    { name: 'IT Support', description: 'Information technology support' },
+    { name: 'Tutoring', description: 'Educational tutoring services' },
+    { name: 'Home Repair', description: 'General home repair services' },
+    { name: 'Furniture Assembly', description: 'Furniture assembly and installation' },
+    { name: 'Window Cleaning', description: 'Window cleaning services' },
+  ];
+
+  try {
+    // Check if categories already exist
+    const existingCategories = await app.db.select().from(schema.serviceCategories);
+    if (existingCategories.length === categoriesData.length) {
+      app.logger.info({ count: existingCategories.length }, 'Service categories already seeded');
+      return;
+    }
+
+    // Insert categories one by one, skipping duplicates
+    let insertedCount = 0;
+    for (const category of categoriesData) {
+      try {
+        // Check if this category already exists by name
+        const existing = await app.db
+          .select()
+          .from(schema.serviceCategories)
+          .where(eq(schema.serviceCategories.name, category.name));
+
+        if (existing.length === 0) {
+          await app.db.insert(schema.serviceCategories).values(category);
+          insertedCount++;
+        }
+      } catch (err) {
+        app.logger.debug({ category: category.name, err }, 'Skipping category');
+      }
+    }
+
+    app.logger.info({ inserted: insertedCount, total: categoriesData.length }, 'Service categories seeded successfully');
+  } catch (error) {
+    app.logger.error({ err: error }, 'Failed to seed service categories');
   }
 }

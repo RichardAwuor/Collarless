@@ -107,7 +107,7 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
   // POST /api/users/register-provider
   fastify.post('/api/users/register-provider', {
     schema: {
-      description: 'Register a new service provider',
+      description: 'Register a new service provider with profile picture, services, and commute distance',
       tags: ['users'],
       body: {
         type: 'object',
@@ -116,14 +116,15 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
           email: { type: 'string', format: 'email' },
           firstName: { type: 'string' },
           lastName: { type: 'string' },
-          gender: { type: 'string', enum: ['Male', 'Female'] },
-          dateOfBirth: { type: 'string', format: 'date' },
-          identityNumber: { type: 'string' },
-          county: { type: 'string' },
-          commuteDistance: { type: 'integer', minimum: 1, maximum: 100 },
-          phoneNumber: { type: 'string' },
-          services: { type: 'array', items: { type: 'string' } },
-          training: { type: 'array', items: { type: 'string' } },
+          gender: { type: 'string', enum: ['Male', 'Female'], description: 'Provider gender (Male or Female)' },
+          dateOfBirth: { type: 'string', format: 'date', description: 'Date of birth (YYYY-MM-DD)' },
+          identityNumber: { type: 'string', description: 'National ID number (encrypted)' },
+          county: { type: 'string', description: 'County code (3-letter, e.g., NBI, MSA)' },
+          commuteDistance: { type: 'integer', minimum: 1, maximum: 100, description: 'Max commute distance in km (1-100)' },
+          phoneNumber: { type: 'string', description: 'Phone number for communication' },
+          photoUrl: { type: 'string', description: 'URL of uploaded profile picture (full body photo)' },
+          services: { type: 'array', items: { type: 'string' }, description: 'Array of service categories provider offers' },
+          training: { type: 'array', items: { type: 'string' }, description: 'Array of training/certifications' },
         },
       },
       response: {
@@ -144,6 +145,7 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
               properties: {
                 id: { type: 'string' },
                 providerCode: { type: 'string' },
+                photoUrl: { type: 'string' },
               },
             },
           },
@@ -162,13 +164,14 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
         county: string;
         commuteDistance: number;
         phoneNumber: string;
+        photoUrl?: string;
         services: string[];
         training: string[];
       };
     }>,
     reply: FastifyReply
   ) => {
-    const { email, firstName, lastName, gender, dateOfBirth, identityNumber, county, commuteDistance, phoneNumber, services, training } = request.body;
+    const { email, firstName, lastName, gender, dateOfBirth, identityNumber, county, commuteDistance, phoneNumber, photoUrl, services, training } = request.body;
     app.logger.info({ email, firstName, lastName, county }, 'Registering provider');
 
     try {
@@ -230,7 +233,7 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
           dateOfBirth,
           identityNumber: encryptIdentity(identityNumber),
           providerCode,
-          photoUrl: '', // Will be set after photo upload
+          photoUrl: photoUrl || '', // Use provided photo URL or empty string
           commuteDistance,
           phoneNumber,
           subscriptionStatus: 'expired',
@@ -268,6 +271,7 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
         provider: {
           id: provider.id,
           providerCode,
+          photoUrl: provider.photoUrl || null,
         },
       });
     } catch (error) {
