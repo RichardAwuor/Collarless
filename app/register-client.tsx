@@ -49,10 +49,9 @@ export default function RegisterClientScreen() {
   const emailsMatch = email.length > 0 && confirmEmail.length > 0 && email === confirmEmail;
   const emailsDontMatch = confirmEmail.length > 0 && email !== confirmEmail;
 
-  // Filter counties based on search
+  // Filter counties based on search (only by name now)
   const filteredCounties = COUNTIES.filter(county =>
-    county.countyName.toLowerCase().includes(countySearch.toLowerCase()) ||
-    county.countyCode.toLowerCase().includes(countySearch.toLowerCase())
+    county.countyName.toLowerCase().includes(countySearch.toLowerCase())
   );
 
   const handleRegister = async () => {
@@ -87,7 +86,7 @@ export default function RegisterClientScreen() {
         email,
         firstName,
         lastName,
-        county: selectedCounty.countyCode, // ✅ FIXED: Send county CODE instead of name
+        county: selectedCounty.countyName, // ✅ FIXED: Send only county NAME
         isOrganization: organizationType === 'organization',
         ...(organizationType === 'organization' && organizationName ? { organizationName } : {}),
       };
@@ -253,14 +252,9 @@ export default function RegisterClientScreen() {
             }}
           >
             <View style={styles.countyButtonContent}>
-              <View>
-                <Text style={[styles.countyButtonText, { color: textColor }]}>
-                  {selectedCounty.countyName}
-                </Text>
-                <Text style={[styles.countyButtonSubtext, { color: textColor, opacity: 0.6 }]}>
-                  {selectedCounty.countyCode}
-                </Text>
-              </View>
+              <Text style={[styles.countyButtonText, { color: textColor }]}>
+                {selectedCounty.countyName}
+              </Text>
               <IconSymbol
                 ios_icon_name="chevron.right"
                 android_material_icon_name="chevron-right"
@@ -341,18 +335,13 @@ export default function RegisterClientScreen() {
                     setSelectedCounty(county);
                     setShowCountyModal(false);
                     setCountySearch('');
-                    console.log('County selected:', county.countyName, 'Code:', county.countyCode);
+                    console.log('County selected:', county.countyName);
                   }}
                 >
                   <View style={styles.countyItemContent}>
-                    <View>
-                      <Text style={[styles.countyItemName, { color: textColor }]}>
-                        {county.countyName}
-                      </Text>
-                      <Text style={[styles.countyItemCode, { color: textColor, opacity: 0.6 }]}>
-                        {county.countyCode}
-                      </Text>
-                    </View>
+                    <Text style={[styles.countyItemName, { color: textColor }]}>
+                      {county.countyName}
+                    </Text>
                     {isSelected && (
                       <IconSymbol
                         ios_icon_name="checkmark.circle.fill"
@@ -461,10 +450,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  countyButtonSubtext: {
-    fontSize: 14,
-    marginTop: 2,
-  },
   button: {
     borderRadius: 8,
     padding: 16,
@@ -520,9 +505,5 @@ const styles = StyleSheet.create({
   countyItemName: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  countyItemCode: {
-    fontSize: 14,
-    marginTop: 2,
   },
 });
