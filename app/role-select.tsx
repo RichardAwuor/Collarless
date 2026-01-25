@@ -22,7 +22,7 @@ export default function RoleSelectScreen() {
   const textSecondaryColor = isDark ? colors.textSecondaryDark : colors.textSecondary;
   const cardColor = isDark ? colors.cardDark : colors.card;
   const primaryColor = isDark ? colors.primaryDark : colors.primary;
-  const backgroundColor = isDark ? '#2A2A2A' : '#F5F5F5';
+  const backgroundColor = '#FFFFFF';
 
   const handleClientSelect = () => {
     console.log('User selected Client role');
