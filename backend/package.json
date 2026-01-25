@@ -20,6 +20,7 @@
     "@fastify/websocket": "^11.2.0",
     "@neondatabase/serverless": "^1.0.2",
     "@specific-dev/framework": "1.23.1",
+    "axios": "^1.13.2",
     "better-auth": "1.4.5",
     "commander": "^12.1.0",
     "crypto": "^1.0.1",

@@ -94,6 +94,20 @@ export const counties = pgTable('counties', {
   name: text('name').notNull(),
 });
 
+// M-Pesa Transactions table
+export const mpesaTransactions = pgTable('mpesa_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  providerId: uuid('provider_id').notNull().references(() => serviceProviders.id, { onDelete: 'cascade' }),
+  merchantRequestId: text('merchant_request_id').notNull(),
+  checkoutRequestId: text('checkout_request_id').notNull().unique(),
+  phoneNumber: text('phone_number').notNull(),
+  amount: integer('amount').notNull().default(130),
+  mpesaReceiptNumber: text('mpesa_receipt_number'),
+  status: text('status').notNull().default('pending'), // 'pending', 'completed', 'failed'
+  resultDesc: text('result_desc'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   provider: one(serviceProviders, {
@@ -113,6 +127,7 @@ export const serviceProvidersRelations = relations(serviceProviders, ({ one, man
   training: many(providerTraining),
   gigsAccepted: many(gigs),
   reviews: many(reviews),
+  mpesaTransactions: many(mpesaTransactions),
 }));
 
 export const providerServicesRelations = relations(providerServices, ({ one }) => ({
@@ -153,5 +168,12 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   client: one(users, {
     fields: [reviews.clientId],
     references: [users.id],
+  }),
+}));
+
+export const mpesaTransactionsRelations = relations(mpesaTransactions, ({ one }) => ({
+  provider: one(serviceProviders, {
+    fields: [mpesaTransactions.providerId],
+    references: [serviceProviders.id],
   }),
 }));

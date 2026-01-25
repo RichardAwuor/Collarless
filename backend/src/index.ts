@@ -6,6 +6,7 @@ import { registerGigRoutes } from './routes/gigs.js';
 import { registerReviewRoutes } from './routes/reviews.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import { registerProfileRoutes } from './routes/profile.js';
+import { registerMpesaRoutes } from './routes/mpesa.js';
 
 // Create application with schema for full database type support
 export const app = await createApplication(schema);
@@ -23,6 +24,7 @@ registerGigRoutes(app, app.fastify);
 registerReviewRoutes(app, app.fastify);
 registerProviderRoutes(app, app.fastify);
 registerProfileRoutes(app, app.fastify);
+registerMpesaRoutes(app, app.fastify);
 
 // Seed counties data on startup
 await seedCounties();
