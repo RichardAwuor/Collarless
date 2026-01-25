@@ -12,15 +12,16 @@ import {
   Platform,
   Image,
   ImageSourcePropType,
+  Modal,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { useUser } from '@/contexts/UserContext';
 import { SERVICE_CATEGORIES } from '@/constants/data';
-import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiCall } from '@/utils/api';
+import { IconSymbol } from '@/components/IconSymbol';
 
 // Helper to resolve image sources (handles both local require() and remote URLs)
 function resolveImageSource(source: string | number | ImageSourcePropType | undefined): ImageSourcePropType {
@@ -35,7 +36,8 @@ export default function PostGigScreen() {
   const isDark = colorScheme === 'dark';
   const { user } = useUser();
 
-  const [category, setCategory] = useState(SERVICE_CATEGORIES[0]);
+  const [category, setCategory] = useState('');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [serviceDate, setServiceDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [serviceTime, setServiceTime] = useState(new Date());
@@ -57,10 +59,10 @@ export default function PostGigScreen() {
   const inputBg = isDark ? colors.cardDark : colors.card;
 
   const formatDate = (date: Date): string => {
-    const day = date.getDate();
     const month = date.getMonth() + 1;
+    const day = date.getDate();
     const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${month}/${day}/${year}`;
   };
 
   const formatTime = (date: Date): string => {
@@ -74,6 +76,11 @@ export default function PostGigScreen() {
 
   const handlePostGig = async () => {
     console.log('Posting gig', { category, serviceDate, address, paymentOffer });
+
+    if (!category) {
+      Alert.alert('Error', 'Please select a service category');
+      return;
+    }
 
     if (!address || address.length > 30) {
       Alert.alert('Error', 'Address must be between 1 and 30 characters');
@@ -144,6 +151,8 @@ export default function PostGigScreen() {
     }
   };
 
+  const categoryPlaceholder = category || 'Select service category';
+
   return (
     <>
       <Stack.Screen
@@ -162,28 +171,96 @@ export default function PostGigScreen() {
             />
           </View>
 
-          <Text style={[styles.label, { color: textColor }]}>Service Category *</Text>
-          <View style={[styles.pickerContainer, { backgroundColor: inputBg, borderColor }]}>
-            <Picker
-              selectedValue={category}
-              onValueChange={(value) => {
-                setCategory(value);
-                console.log('Category selected:', value);
-              }}
-              style={[styles.picker, { color: textColor }]}
-            >
-              {SERVICE_CATEGORIES.map((cat) => (
-                <Picker.Item key={cat} label={cat} value={cat} />
-              ))}
-            </Picker>
-          </View>
-
-          <Text style={[styles.label, { color: textColor }]}>Service Date *</Text>
+          <Text style={[styles.label, { color: textColor }]}>Service Category</Text>
           <TouchableOpacity
-            style={[styles.input, { backgroundColor: inputBg, borderColor, justifyContent: 'center' }]}
-            onPress={() => setShowDatePicker(true)}
+            style={[styles.input, styles.selectInput, { backgroundColor: inputBg, borderColor }]}
+            onPress={() => {
+              console.log('Opening category modal');
+              setShowCategoryModal(true);
+            }}
+          >
+            <Text style={[styles.selectText, { color: category ? textColor : (isDark ? '#888' : '#999') }]}>
+              {categoryPlaceholder}
+            </Text>
+            <IconSymbol
+              ios_icon_name="chevron.down"
+              android_material_icon_name="arrow-drop-down"
+              size={24}
+              color={textColor}
+            />
+          </TouchableOpacity>
+
+          {/* Category Selection Modal */}
+          <Modal
+            visible={showCategoryModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowCategoryModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalContent, { backgroundColor: bgColor }]}>
+                <View style={styles.modalHeader}>
+                  <Text style={[styles.modalTitle, { color: textColor }]}>Select Service Category</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowCategoryModal(false)}
+                    style={styles.closeButton}
+                  >
+                    <IconSymbol
+                      ios_icon_name="xmark"
+                      android_material_icon_name="close"
+                      size={24}
+                      color={textColor}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.modalScroll}>
+                  {SERVICE_CATEGORIES.map((cat, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.categoryOption,
+                        { borderBottomColor: borderColor },
+                        category === cat && { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }
+                      ]}
+                      onPress={() => {
+                        console.log('Category selected:', cat);
+                        setCategory(cat);
+                        setShowCategoryModal(false);
+                      }}
+                    >
+                      <Text style={[styles.categoryText, { color: textColor }]}>
+                        {cat}
+                      </Text>
+                      {category === cat && (
+                        <IconSymbol
+                          ios_icon_name="checkmark"
+                          android_material_icon_name="check"
+                          size={20}
+                          color={primaryColor}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+
+          <Text style={[styles.label, { color: textColor }]}>Service Date</Text>
+          <TouchableOpacity
+            style={[styles.input, styles.selectInput, { backgroundColor: inputBg, borderColor }]}
+            onPress={() => {
+              console.log('Opening date picker');
+              setShowDatePicker(true);
+            }}
           >
             <Text style={{ color: textColor }}>{dateDisplay}</Text>
+            <IconSymbol
+              ios_icon_name="calendar"
+              android_material_icon_name="calendar-today"
+              size={20}
+              color={textColor}
+            />
           </TouchableOpacity>
 
           {showDatePicker && (
@@ -202,12 +279,21 @@ export default function PostGigScreen() {
             />
           )}
 
-          <Text style={[styles.label, { color: textColor }]}>Service Time *</Text>
+          <Text style={[styles.label, { color: textColor }]}>Service Time</Text>
           <TouchableOpacity
-            style={[styles.input, { backgroundColor: inputBg, borderColor, justifyContent: 'center' }]}
-            onPress={() => setShowTimePicker(true)}
+            style={[styles.input, styles.selectInput, { backgroundColor: inputBg, borderColor }]}
+            onPress={() => {
+              console.log('Opening time picker');
+              setShowTimePicker(true);
+            }}
           >
             <Text style={{ color: textColor }}>{timeDisplay}</Text>
+            <IconSymbol
+              ios_icon_name="clock"
+              android_material_icon_name="access-time"
+              size={20}
+              color={textColor}
+            />
           </TouchableOpacity>
 
           {showTimePicker && (
@@ -226,26 +312,23 @@ export default function PostGigScreen() {
           )}
 
           <Text style={[styles.label, { color: textColor }]}>
-            Gig Address * (max 30 characters)
+            Address (max 30 characters)
           </Text>
           <TextInput
             style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-            placeholder="e.g., Westlands, Nairobi"
+            placeholder="Enter gig address"
             placeholderTextColor={isDark ? '#888' : '#999'}
             value={address}
             onChangeText={setAddress}
             maxLength={30}
           />
-          <Text style={[styles.charCount, { color: textColor }]}>
-            {address.length}/30
-          </Text>
 
           <Text style={[styles.label, { color: textColor }]}>
-            Gig Description * (max 160 characters)
+            Description (max 160 characters)
           </Text>
           <TextInput
             style={[styles.textArea, { backgroundColor: inputBg, color: textColor, borderColor }]}
-            placeholder="Describe the work needed..."
+            placeholder="Describe the work needed"
             placeholderTextColor={isDark ? '#888' : '#999'}
             value={description}
             onChangeText={setDescription}
@@ -253,14 +336,10 @@ export default function PostGigScreen() {
             multiline
             numberOfLines={4}
           />
-          <Text style={[styles.charCount, { color: textColor }]}>
-            {description.length}/160
-          </Text>
 
-          <Text style={[styles.label, { color: textColor }]}>Duration *</Text>
           <View style={styles.durationRow}>
             <View style={styles.durationInput}>
-              <Text style={[styles.durationLabel, { color: textColor }]}>Days</Text>
+              <Text style={[styles.label, { color: textColor }]}>Days</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
                 placeholder="0"
@@ -271,7 +350,7 @@ export default function PostGigScreen() {
               />
             </View>
             <View style={styles.durationInput}>
-              <Text style={[styles.durationLabel, { color: textColor }]}>Hours</Text>
+              <Text style={[styles.label, { color: textColor }]}>Hours</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
                 placeholder="1"
@@ -283,49 +362,73 @@ export default function PostGigScreen() {
             </View>
           </View>
 
-          <Text style={[styles.label, { color: textColor }]}>Preferred Gender (optional)</Text>
-          <View style={styles.radioGroup}>
+          <Text style={[styles.label, { color: textColor }]}>Preferred Gender (Optional)</Text>
+          <View style={styles.genderRow}>
             <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => setPreferredGender('any')}
+              style={[
+                styles.genderButton,
+                { backgroundColor: inputBg, borderColor },
+                preferredGender === 'male' && { backgroundColor: primaryColor, borderColor: primaryColor }
+              ]}
+              onPress={() => {
+                console.log('Gender selected: Male');
+                setPreferredGender('male');
+              }}
             >
-              <View style={[styles.radio, { borderColor }]}>
-                {preferredGender === 'any' && (
-                  <View style={[styles.radioInner, { backgroundColor: primaryColor }]} />
-                )}
-              </View>
-              <Text style={[styles.radioLabel, { color: textColor }]}>Any</Text>
+              <Text style={[
+                styles.genderButtonText,
+                { color: textColor },
+                preferredGender === 'male' && { color: '#FFFFFF' }
+              ]}>
+                Male
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => setPreferredGender('male')}
+              style={[
+                styles.genderButton,
+                { backgroundColor: inputBg, borderColor },
+                preferredGender === 'female' && { backgroundColor: primaryColor, borderColor: primaryColor }
+              ]}
+              onPress={() => {
+                console.log('Gender selected: Female');
+                setPreferredGender('female');
+              }}
             >
-              <View style={[styles.radio, { borderColor }]}>
-                {preferredGender === 'male' && (
-                  <View style={[styles.radioInner, { backgroundColor: primaryColor }]} />
-                )}
-              </View>
-              <Text style={[styles.radioLabel, { color: textColor }]}>Male</Text>
+              <Text style={[
+                styles.genderButtonText,
+                { color: textColor },
+                preferredGender === 'female' && { color: '#FFFFFF' }
+              ]}>
+                Female
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => setPreferredGender('female')}
+              style={[
+                styles.genderButton,
+                { backgroundColor: inputBg, borderColor },
+                preferredGender === 'any' && { backgroundColor: primaryColor, borderColor: primaryColor }
+              ]}
+              onPress={() => {
+                console.log('Gender selected: Any');
+                setPreferredGender('any');
+              }}
             >
-              <View style={[styles.radio, { borderColor }]}>
-                {preferredGender === 'female' && (
-                  <View style={[styles.radioInner, { backgroundColor: primaryColor }]} />
-                )}
-              </View>
-              <Text style={[styles.radioLabel, { color: textColor }]}>Female</Text>
+              <Text style={[
+                styles.genderButtonText,
+                { color: textColor },
+                preferredGender === 'any' && { color: '#FFFFFF' }
+              ]}>
+                Any
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.label, { color: textColor }]}>Payment Offer (KES) *</Text>
+          <Text style={[styles.label, { color: textColor }]}>Payment Offer (KES)</Text>
           <TextInput
             style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-            placeholder="e.g., 5000"
+            placeholder="Enter amount in KES"
             placeholderTextColor={isDark ? '#888' : '#999'}
             value={paymentOffer}
             onChangeText={setPaymentOffer}
@@ -355,7 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'android' ? 48 : 20,
     paddingBottom: 40,
-    gap: 16,
+    gap: 12,
   },
   logoHeader: {
     alignItems: 'center',
@@ -368,13 +471,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: -8,
+    marginBottom: 4,
   },
   input: {
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     borderWidth: 1,
+  },
+  selectInput: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectText: {
+    fontSize: 16,
+    flex: 1,
   },
   textArea: {
     borderRadius: 8,
@@ -384,20 +496,6 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  charCount: {
-    fontSize: 12,
-    textAlign: 'right',
-    marginTop: -8,
-    opacity: 0.6,
-  },
-  pickerContainer: {
-    borderRadius: 8,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-  },
   durationRow: {
     flexDirection: 'row',
     gap: 16,
@@ -405,44 +503,70 @@ const styles = StyleSheet.create({
   durationInput: {
     flex: 1,
   },
-  durationLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  radioGroup: {
+  genderRow: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 12,
   },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    justifyContent: 'center',
+  genderButton: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
     alignItems: 'center',
   },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  radioLabel: {
+  genderButtonText: {
     fontSize: 16,
+    fontWeight: '500',
   },
   button: {
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalScroll: {
+    maxHeight: 500,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  categoryText: {
+    fontSize: 16,
+    flex: 1,
   },
 });
