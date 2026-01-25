@@ -36,11 +36,12 @@ export default function RoleSelectScreen() {
   const clientDescription = 'Post gigs and hire service providers';
   const providerDescription = 'Find gigs and earn money';
 
-  // Color definitions
-  const welcomeColor = colors.secondary; // Orange like logo
+  // Color definitions - Bright orange like logo
+  const brightOrange = '#FF6B35'; // Bright orange color
+  const welcomeColor = brightOrange; // Orange like logo
   const sloganColor = colors.primary; // Blue
   const cardBackgroundColor = colors.primary; // Blue cards
-  const cardTitleColor = colors.secondary; // Orange for Client and Service provider text
+  const cardTitleColor = brightOrange; // Bright orange for Client and Service provider text
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
