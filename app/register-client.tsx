@@ -10,13 +10,14 @@ import {
   useColorScheme,
   Alert,
   Platform,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { useUser } from '@/contexts/UserContext';
 import { COUNTIES, County } from '@/constants/counties';
-import { Picker } from '@react-native-picker/picker';
+import { IconSymbol } from '@/components/IconSymbol';
 
 export default function RegisterClientScreen() {
   const router = useRouter();
@@ -32,6 +33,8 @@ export default function RegisterClientScreen() {
   const [organizationName, setOrganizationName] = useState('');
   const [selectedCounty, setSelectedCounty] = useState<County>(COUNTIES[46]); // Default to Nairobi
   const [loading, setLoading] = useState(false);
+  const [showCountyModal, setShowCountyModal] = useState(false);
+  const [countySearch, setCountySearch] = useState('');
 
   console.log('Client registration screen loaded');
 
@@ -41,6 +44,16 @@ export default function RegisterClientScreen() {
   const cardColor = isDark ? colors.cardDark : colors.card;
   const borderColor = isDark ? colors.borderDark : colors.border;
   const inputBg = isDark ? colors.cardDark : colors.card;
+
+  // Check if emails match and both are filled
+  const emailsMatch = email.length > 0 && confirmEmail.length > 0 && email === confirmEmail;
+  const emailsDontMatch = confirmEmail.length > 0 && email !== confirmEmail;
+
+  // Filter counties based on search
+  const filteredCounties = COUNTIES.filter(county =>
+    county.countyName.toLowerCase().includes(countySearch.toLowerCase()) ||
+    county.countyCode.toLowerCase().includes(countySearch.toLowerCase())
+  );
 
   const handleRegister = async () => {
     console.log('Client registration initiated', { email, firstName, lastName, organizationType });
@@ -136,16 +149,39 @@ export default function RegisterClientScreen() {
           />
 
           <Text style={[styles.label, { color: textColor }]}>Confirm Email *</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-            placeholder="Re-enter your email"
-            placeholderTextColor={isDark ? '#888' : '#999'}
-            value={confirmEmail}
-            onChangeText={setConfirmEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <View style={styles.inputWithIcon}>
+            <TextInput
+              style={[
+                styles.input,
+                { 
+                  backgroundColor: inputBg, 
+                  color: textColor, 
+                  borderColor: emailsDontMatch ? '#FF3B30' : borderColor,
+                  flex: 1,
+                }
+              ]}
+              placeholder="Re-enter your email"
+              placeholderTextColor={isDark ? '#888' : '#999'}
+              value={confirmEmail}
+              onChangeText={setConfirmEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {emailsMatch && (
+              <View style={styles.checkMarkContainer}>
+                <IconSymbol
+                  ios_icon_name="checkmark.circle.fill"
+                  android_material_icon_name="check-circle"
+                  size={24}
+                  color="#34C759"
+                />
+              </View>
+            )}
+          </View>
+          {emailsDontMatch && (
+            <Text style={styles.errorText}>Emails do not match</Text>
+          )}
 
           <Text style={[styles.label, { color: textColor }]}>Account Type *</Text>
           <View style={styles.radioGroup}>
@@ -209,27 +245,30 @@ export default function RegisterClientScreen() {
           />
 
           <Text style={[styles.label, { color: textColor }]}>County *</Text>
-          <View style={[styles.pickerContainer, { backgroundColor: inputBg, borderColor }]}>
-            <Picker
-              selectedValue={selectedCounty.countyNumber}
-              onValueChange={(value) => {
-                const county = COUNTIES.find(c => c.countyNumber === value);
-                if (county) {
-                  setSelectedCounty(county);
-                  console.log('County selected:', county.countyName);
-                }
-              }}
-              style={[styles.picker, { color: textColor }]}
-            >
-              {COUNTIES.map((county) => (
-                <Picker.Item
-                  key={county.countyNumber}
-                  label={`${county.countyName} (${county.countyCode})`}
-                  value={county.countyNumber}
-                />
-              ))}
-            </Picker>
-          </View>
+          <TouchableOpacity
+            style={[styles.countyButton, { backgroundColor: inputBg, borderColor }]}
+            onPress={() => {
+              setShowCountyModal(true);
+              console.log('County selection modal opened');
+            }}
+          >
+            <View style={styles.countyButtonContent}>
+              <View>
+                <Text style={[styles.countyButtonText, { color: textColor }]}>
+                  {selectedCounty.countyName}
+                </Text>
+                <Text style={[styles.countyButtonSubtext, { color: textColor, opacity: 0.6 }]}>
+                  {selectedCounty.countyCode}
+                </Text>
+              </View>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={24}
+                color={textColor}
+              />
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.button, { backgroundColor: primaryColor }]}
@@ -242,6 +281,93 @@ export default function RegisterClientScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* County Selection Modal */}
+      <Modal
+        visible={showCountyModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCountyModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: bgColor }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>Select County</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowCountyModal(false);
+                setCountySearch('');
+                console.log('County selection modal closed');
+              }}
+            >
+              <IconSymbol
+                ios_icon_name="xmark.circle.fill"
+                android_material_icon_name="cancel"
+                size={28}
+                color={textColor}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <IconSymbol
+              ios_icon_name="magnifyingglass"
+              android_material_icon_name="search"
+              size={20}
+              color={isDark ? '#888' : '#999'}
+            />
+            <TextInput
+              style={[styles.searchInput, { color: textColor }]}
+              placeholder="Search counties..."
+              placeholderTextColor={isDark ? '#888' : '#999'}
+              value={countySearch}
+              onChangeText={setCountySearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <ScrollView style={styles.countyList}>
+            {filteredCounties.map((county) => {
+              const isSelected = selectedCounty.countyNumber === county.countyNumber;
+              return (
+                <TouchableOpacity
+                  key={county.countyNumber}
+                  style={[
+                    styles.countyItem,
+                    { borderBottomColor: borderColor },
+                    isSelected && { backgroundColor: isDark ? 'rgba(0, 122, 255, 0.15)' : 'rgba(0, 122, 255, 0.1)' }
+                  ]}
+                  onPress={() => {
+                    setSelectedCounty(county);
+                    setShowCountyModal(false);
+                    setCountySearch('');
+                    console.log('County selected:', county.countyName);
+                  }}
+                >
+                  <View style={styles.countyItemContent}>
+                    <View>
+                      <Text style={[styles.countyItemName, { color: textColor }]}>
+                        {county.countyName}
+                      </Text>
+                      <Text style={[styles.countyItemCode, { color: textColor, opacity: 0.6 }]}>
+                        {county.countyCode}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check-circle"
+                        size={24}
+                        color={primaryColor}
+                      />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -281,6 +407,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
   },
+  inputWithIcon: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkMarkContainer: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    marginTop: -8,
+  },
   radioGroup: {
     flexDirection: 'row',
     gap: 24,
@@ -306,13 +447,23 @@ const styles = StyleSheet.create({
   radioLabel: {
     fontSize: 16,
   },
-  pickerContainer: {
+  countyButton: {
     borderRadius: 8,
+    padding: 16,
     borderWidth: 1,
-    overflow: 'hidden',
   },
-  picker: {
-    height: 50,
+  countyButtonContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  countyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  countyButtonSubtext: {
+    fontSize: 14,
+    marginTop: 2,
   },
   button: {
     borderRadius: 8,
@@ -324,5 +475,54 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 8,
+  },
+  countyList: {
+    flex: 1,
+  },
+  countyItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  countyItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  countyItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  countyItemCode: {
+    fontSize: 14,
+    marginTop: 2,
   },
 });
