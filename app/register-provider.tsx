@@ -11,14 +11,26 @@ import {
   Alert,
   Platform,
   Modal,
+  Image,
+  ImageSourcePropType,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { useUser } from '@/contexts/UserContext';
 import { COUNTIES, County } from '@/constants/counties';
+import { SERVICE_CATEGORIES } from '@/constants/data';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { IconSymbol } from '@/components/IconSymbol';
+import * as ImagePicker from 'expo-image-picker';
+
+// Helper to resolve image sources
+function resolveImageSource(source: string | number | ImageSourcePropType | undefined): ImageSourcePropType {
+  if (!source) return { uri: '' };
+  if (typeof source === 'string') return { uri: source };
+  return source as ImageSourcePropType;
+}
 
 export default function RegisterProviderScreen() {
   const router = useRouter();
@@ -37,9 +49,14 @@ export default function RegisterProviderScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedCounty, setSelectedCounty] = useState<County>(COUNTIES[46]); // Default to Nairobi
   const [commuteDistance, setCommuteDistance] = useState('20');
+  const [profileImage, setProfileImage] = useState<string>('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [showCountyModal, setShowCountyModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
   const [countySearch, setCountySearch] = useState('');
+  const [servicesSearch, setServicesSearch] = useState('');
 
   console.log('Provider registration screen loaded');
 
@@ -54,9 +71,14 @@ export default function RegisterProviderScreen() {
   const emailsMatch = email.length > 0 && confirmEmail.length > 0 && email === confirmEmail;
   const emailsDontMatch = confirmEmail.length > 0 && email !== confirmEmail;
 
-  // Filter counties based on search (only by name now)
+  // Filter counties based on search
   const filteredCounties = COUNTIES.filter(county =>
     county.countyName.toLowerCase().includes(countySearch.toLowerCase())
+  );
+
+  // Filter services based on search
+  const filteredServices = SERVICE_CATEGORIES.filter(service =>
+    service.toLowerCase().includes(servicesSearch.toLowerCase())
   );
 
   const formatDate = (date: Date): string => {
@@ -67,6 +89,94 @@ export default function RegisterProviderScreen() {
   };
 
   const dateDisplay = formatDate(dateOfBirth);
+
+  const handlePickImage = async () => {
+    console.log('Image picker opened');
+    
+    // Request permission
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library to upload a profile picture.');
+      return;
+    }
+
+    // Launch image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const imageUri = result.assets[0].uri;
+      console.log('Image selected:', imageUri);
+      
+      // Upload image
+      await uploadImage(imageUri);
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    setUploadingImage(true);
+    console.log('Uploading image:', uri);
+
+    try {
+      const { BACKEND_URL } = await import('@/utils/api');
+      
+      // Create form data
+      const formData = new FormData();
+      const filename = uri.split('/').pop() || 'profile.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('image', {
+        uri,
+        name: filename,
+        type,
+      } as any);
+
+      console.log('Sending image upload request');
+
+      const response = await fetch(`${BACKEND_URL}/api/upload/profile-picture`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      console.log('Image uploaded successfully:', data);
+      
+      setProfileImage(data.url);
+      setUploadingImage(false);
+      Alert.alert('Success', 'Profile picture uploaded successfully!');
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setUploadingImage(false);
+      Alert.alert('Upload Failed', 'Failed to upload image. Please try again.');
+    }
+  };
+
+  const toggleService = (service: string) => {
+    if (selectedServices.includes(service)) {
+      setSelectedServices(selectedServices.filter(s => s !== service));
+      console.log('Service removed:', service);
+    } else {
+      setSelectedServices([...selectedServices, service]);
+      console.log('Service added:', service);
+    }
+  };
+
+  const selectedServicesText = selectedServices.length > 0
+    ? `${selectedServices.length} selected`
+    : 'Select services';
 
   const handleRegister = async () => {
     console.log('Provider registration initiated', { email, firstName, lastName, gender });
@@ -83,6 +193,11 @@ export default function RegisterProviderScreen() {
 
     if (email !== confirmEmail) {
       Alert.alert('Error', 'Email addresses do not match');
+      return;
+    }
+
+    if (selectedServices.length === 0) {
+      Alert.alert('Error', 'Please select at least one service');
       return;
     }
 
@@ -104,14 +219,15 @@ export default function RegisterProviderScreen() {
         email,
         firstName,
         lastName,
-        gender: gender.charAt(0).toUpperCase() + gender.slice(1), // Capitalize first letter
+        gender: gender.charAt(0).toUpperCase() + gender.slice(1),
         dateOfBirth: formattedDate,
         identityNumber,
-        county: selectedCounty.countyCode, // ✅ FIXED: Send county CODE (e.g., "LMU", "MSA")
+        county: selectedCounty.countyCode,
         commuteDistance: distance,
         phoneNumber,
-        services: [], // Empty array for now - can be added later
-        training: [], // Empty array for now - can be added later
+        services: selectedServices,
+        training: [],
+        ...(profileImage ? { photoUrl: profileImage } : {}),
       };
 
       console.log('Sending provider registration request:', requestBody);
@@ -138,7 +254,7 @@ export default function RegisterProviderScreen() {
         gender,
         phoneNumber,
         subscriptionStatus: 'inactive' as const,
-        photoUrl: '',
+        photoUrl: profileImage,
       };
 
       setUser(registeredUser);
@@ -156,7 +272,6 @@ export default function RegisterProviderScreen() {
       if (error instanceof Error) {
         errorMessage = error.message;
         
-        // If it's a JSON parse error, provide more helpful message
         if (errorMessage.includes('JSON') || errorMessage.includes('Unexpected character')) {
           errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
         }
@@ -305,15 +420,41 @@ export default function RegisterProviderScreen() {
             keyboardType="number-pad"
           />
 
-          <Text style={[styles.label, { color: textColor }]}>Phone Number *</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-            placeholder="e.g., 0712345678"
-            placeholderTextColor={isDark ? '#888' : '#999'}
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            keyboardType="phone-pad"
-          />
+          <Text style={[styles.label, { color: textColor }]}>
+            Profile Picture (Full Body) *
+          </Text>
+          <TouchableOpacity
+            style={[styles.imageUploadButton, { backgroundColor: inputBg, borderColor }]}
+            onPress={handlePickImage}
+            disabled={uploadingImage}
+          >
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color={primaryColor} />
+            ) : profileImage ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image
+                  source={resolveImageSource(profileImage)}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+                <Text style={[styles.imageUploadText, { color: primaryColor }]}>
+                  Change Picture
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.imageUploadContent}>
+                <IconSymbol
+                  ios_icon_name="camera.fill"
+                  android_material_icon_name="camera"
+                  size={32}
+                  color={textColor}
+                />
+                <Text style={[styles.imageUploadText, { color: textColor }]}>
+                  Upload Full Body Picture
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <Text style={[styles.label, { color: textColor }]}>County *</Text>
           <TouchableOpacity
@@ -346,6 +487,37 @@ export default function RegisterProviderScreen() {
             value={commuteDistance}
             onChangeText={setCommuteDistance}
             keyboardType="number-pad"
+          />
+
+          <Text style={[styles.label, { color: textColor }]}>Services *</Text>
+          <TouchableOpacity
+            style={[styles.countyButton, { backgroundColor: inputBg, borderColor }]}
+            onPress={() => {
+              setShowServicesModal(true);
+              console.log('Services selection modal opened');
+            }}
+          >
+            <View style={styles.countyButtonContent}>
+              <Text style={[styles.countyButtonText, { color: textColor }]}>
+                {selectedServicesText}
+              </Text>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={24}
+                color={textColor}
+              />
+            </View>
+          </TouchableOpacity>
+
+          <Text style={[styles.label, { color: textColor }]}>Phone Number *</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
+            placeholder="e.g., 0712345678"
+            placeholderTextColor={isDark ? '#888' : '#999'}
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
           />
 
           <TouchableOpacity
@@ -441,6 +613,102 @@ export default function RegisterProviderScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Services Selection Modal */}
+      <Modal
+        visible={showServicesModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowServicesModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: bgColor }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>Select Services</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowServicesModal(false);
+                setServicesSearch('');
+                console.log('Services selection modal closed');
+              }}
+            >
+              <IconSymbol
+                ios_icon_name="xmark.circle.fill"
+                android_material_icon_name="cancel"
+                size={28}
+                color={textColor}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <IconSymbol
+              ios_icon_name="magnifyingglass"
+              android_material_icon_name="search"
+              size={20}
+              color={isDark ? '#888' : '#999'}
+            />
+            <TextInput
+              style={[styles.searchInput, { color: textColor }]}
+              placeholder="Search services..."
+              placeholderTextColor={isDark ? '#888' : '#999'}
+              value={servicesSearch}
+              onChangeText={setServicesSearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <View style={styles.selectedCountBadge}>
+            <Text style={[styles.selectedCountText, { color: primaryColor }]}>
+              {selectedServices.length} services selected
+            </Text>
+          </View>
+
+          <ScrollView style={styles.countyList}>
+            {filteredServices.map((service, index) => {
+              const isSelected = selectedServices.includes(service);
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.countyItem,
+                    { borderBottomColor: borderColor },
+                    isSelected && { backgroundColor: isDark ? 'rgba(0, 122, 255, 0.15)' : 'rgba(0, 122, 255, 0.1)' }
+                  ]}
+                  onPress={() => toggleService(service)}
+                >
+                  <View style={styles.countyItemContent}>
+                    <Text style={[styles.countyItemName, { color: textColor, flex: 1 }]}>
+                      {service}
+                    </Text>
+                    {isSelected && (
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check-circle"
+                        size={24}
+                        color={primaryColor}
+                      />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: primaryColor }]}
+              onPress={() => {
+                setShowServicesModal(false);
+                setServicesSearch('');
+                console.log('Services confirmed:', selectedServices);
+              }}
+            >
+              <Text style={styles.buttonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -520,6 +788,32 @@ const styles = StyleSheet.create({
   radioLabel: {
     fontSize: 16,
   },
+  imageUploadButton: {
+    borderRadius: 8,
+    padding: 24,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 150,
+  },
+  imageUploadContent: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  imageUploadText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  imagePreviewContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  imagePreview: {
+    width: 120,
+    height: 160,
+    borderRadius: 8,
+  },
   countyButton: {
     borderRadius: 8,
     padding: 16,
@@ -573,6 +867,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 8,
   },
+  selectedCountBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  selectedCountText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   countyList: {
     flex: 1,
   },
@@ -589,5 +891,11 @@ const styles = StyleSheet.create({
   countyItemName: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
   },
 });
