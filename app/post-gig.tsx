@@ -15,32 +15,9 @@ import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/styles/commonStyles';
 import { useUser } from '@/contexts/UserContext';
+import { SERVICE_CATEGORIES } from '@/constants/data';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-// Mock categories - will be fetched from backend
-const CATEGORIES = [
-  'Plumbing',
-  'Electrical Work',
-  'Carpentry',
-  'Painting',
-  'Cleaning Services',
-  'Gardening',
-  'Catering',
-  'Event Planning',
-  'Photography',
-  'Videography',
-  'Hair Styling',
-  'Makeup Artist',
-  'Tailoring',
-  'Laundry Services',
-  'Delivery Services',
-  'Moving Services',
-  'Security Services',
-  'Childcare',
-  'Elderly Care',
-  'Tutoring',
-];
 
 export default function PostGigScreen() {
   const router = useRouter();
@@ -48,7 +25,7 @@ export default function PostGigScreen() {
   const isDark = colorScheme === 'dark';
   const { user } = useUser();
 
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState(SERVICE_CATEGORIES[0]);
   const [serviceDate, setServiceDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [serviceTime, setServiceTime] = useState(new Date());
@@ -149,7 +126,7 @@ export default function PostGigScreen() {
               }}
               style={[styles.picker, { color: textColor }]}
             >
-              {CATEGORIES.map((cat) => (
+              {SERVICE_CATEGORIES.map((cat) => (
                 <Picker.Item key={cat} label={cat} value={cat} />
               ))}
             </Picker>
