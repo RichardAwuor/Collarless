@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   boxesContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 16,
     width: '100%',
     justifyContent: 'center',
