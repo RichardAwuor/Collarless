@@ -81,7 +81,7 @@ export default function RoleSelectScreen() {
           >
             <View style={styles.cardContent}>
               <Image
-                source={resolveImageSource(require('@/assets/images/2b8ad1e4-a7c8-4456-9e1c-59383ed99c73.png'))}
+                source={resolveImageSource(require('@/assets/images/8ed562b9-80a4-40db-adf3-47198be96e31.png'))}
                 style={styles.cardImage}
                 resizeMode="contain"
               />
