@@ -1,10 +1,11 @@
+
 {
   "expo": {
     "name": "No-Collar",
     "slug": "No-Collar",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/a3d3323f-a91d-414a-8257-2f65a039b9a5.png",
+    "icon": "./assets/images/35fbfd7b-5396-46ee-874b-1eedf4e380f0.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -21,7 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/a3d3323f-a91d-414a-8257-2f65a039b9a5.png",
+        "foregroundImage": "./assets/images/35fbfd7b-5396-46ee-874b-1eedf4e380f0.png",
         "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true,
