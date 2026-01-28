@@ -5,7 +5,7 @@
     "slug": "No-Collar",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/90aea2c8-0f53-4f33-bfa0-46daaedc0a7f.png",
+    "icon": "./assets/images/82ec51fd-1e96-47bb-a716-c58a9dadd8dd.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -22,8 +22,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/90aea2c8-0f53-4f33-bfa0-46daaedc0a7f.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/images/82ec51fd-1e96-47bb-a716-c58a9dadd8dd.png",
+        "backgroundColor": "#EF8E1F"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.nocollar.app"
@@ -37,7 +37,7 @@
       "expo-router",
       "expo-web-browser"
     ],
-    "scheme": "nocollar",
+    "scheme": "No-Collar",
     "experiments": {
       "typedRoutes": true
     },
