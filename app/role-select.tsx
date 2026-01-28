@@ -47,7 +47,7 @@ export default function RoleSelectScreen() {
       <View style={styles.content}>
         <View style={styles.header}>
           <Image
-            source={resolveImageSource(require('@/assets/images/a3d3323f-a91d-414a-8257-2f65a039b9a5.png'))}
+            source={resolveImageSource(require('@/assets/images/27dc4f72-068f-484d-8ad1-0ab3ebcca23e.png'))}
             style={styles.logo}
             resizeMode="contain"
           />
