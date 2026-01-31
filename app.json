@@ -4,7 +4,7 @@
     "slug": "Collarless",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/82ec51fd-1e96-47bb-a716-c58a9dadd8dd.png",
+    "icon": "./assets/images/f4dfdabc-b1a4-4f8a-853d-730cd94e91a4.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/82ec51fd-1e96-47bb-a716-c58a9dadd8dd.png",
+        "foregroundImage": "./assets/images/f4dfdabc-b1a4-4f8a-853d-730cd94e91a4.png",
         "backgroundColor": "#EF8E1F"
       },
       "edgeToEdgeEnabled": true,
