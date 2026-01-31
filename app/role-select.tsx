@@ -35,12 +35,12 @@ export default function RoleSelectScreen() {
   const clientText = 'Client';
   const providerText = 'Service provider';
 
-  // Color definitions - Bright orange like logo
+  // Color definitions - Changed to black
   const brightOrange = '#FF6B35'; // Bright orange color
   const welcomeColor = brightOrange; // Orange like logo
-  const sloganColor = colors.primary; // Blue
-  const boxBackgroundColor = colors.primary; // Blue boxes
-  const boxTextColor = brightOrange; // Orange text for Client and Service provider
+  const sloganColor = '#000000'; // Changed from blue to black
+  const boxBackgroundColor = '#000000'; // Changed from blue to black
+  const boxTextColor = '#FFFFFF'; // Changed to white for better contrast on black background
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
