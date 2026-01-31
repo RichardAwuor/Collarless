@@ -51,7 +51,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.logoHeader}>
           <Image
-            source={resolveImageSource(require('@/assets/images/a3d3323f-a91d-414a-8257-2f65a039b9a5.png'))}
+            source={resolveImageSource(require('@/assets/images/565b2043-1310-4be0-a4b5-de9ffb63282f.png'))}
             style={styles.logo}
             resizeMode="contain"
           />
