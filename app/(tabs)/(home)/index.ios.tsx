@@ -19,13 +19,37 @@ export default function HomeScreen() {
   const fetchGigs = useCallback(async () => {
     console.log('Fetching gigs for user:', user?.userType);
     
-    // TODO: Backend Integration
-    // For clients: GET /api/gigs/my-gigs?clientId={user.id}
-    // For providers: GET /api/gigs/available?providerId={user.id}
-    
-    // Mock data for now
-    setGigs([]);
-  }, [user?.userType]);
+    if (!user?.id) {
+      console.log('No user ID available');
+      return;
+    }
+
+    try {
+      const { apiCall } = await import('@/utils/api');
+      
+      let data;
+      if (user.userType === 'client') {
+        // Fetch gigs posted by this client
+        console.log('Fetching client gigs for:', user.id);
+        data = await apiCall(`/api/gigs/client/${user.id}`, {
+          method: 'GET',
+        });
+      } else if (user.userType === 'provider' && provider?.id) {
+        // Fetch matching gigs for this provider
+        console.log('Fetching provider gigs for:', provider.id);
+        data = await apiCall(`/api/gigs/matches/${provider.id}`, {
+          method: 'GET',
+        });
+      }
+      
+      console.log('Gigs fetched successfully:', data);
+      setGigs(data || []);
+    } catch (error) {
+      console.error('Error fetching gigs:', error);
+      // Don't show error to user, just log it
+      setGigs([]);
+    }
+  }, [user?.userType, user?.id, provider?.id]);
 
   useEffect(() => {
     if (user) {

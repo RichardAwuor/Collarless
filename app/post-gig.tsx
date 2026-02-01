@@ -135,12 +135,8 @@ export default function PostGigScreen() {
       console.log('Gig posted successfully:', data);
       setLoading(false);
       
-      Alert.alert('Success', 'Your gig has been posted!', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
+      // Navigate to profile to see matched providers
+      router.replace('/(tabs)/profile');
     } catch (error) {
       console.error('Error posting gig:', error);
       setLoading(false);
