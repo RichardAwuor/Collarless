@@ -49,8 +49,10 @@ export default function ProfileScreen() {
   const [selectedProvider, setSelectedProvider] = useState<MatchedProvider | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [acceptedProviderDetails, setAcceptedProviderDetails] = useState<any>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   console.log('Profile screen loaded (iOS)');
 
@@ -66,10 +68,16 @@ export default function ProfileScreen() {
 
     console.log('Fetching recent gig and matched providers for client:', user.id);
     setLoadingMatches(true);
+    setFetchError(null);
     
     try {
       // Fetch client's gigs
       const gigs = await apiCall<RecentGig[]>(`/api/gigs/client/${user.id}`);
+      
+      if (!isMountedRef.current) {
+        console.log('Component unmounted, skipping state update');
+        return;
+      }
       
       if (gigs && gigs.length > 0) {
         const mostRecentGig = gigs[0];
@@ -79,11 +87,16 @@ export default function ProfileScreen() {
         // Check if gig is accepted
         if (mostRecentGig.status === 'accepted' && mostRecentGig.acceptedProviderId) {
           console.log('Gig is accepted, fetching provider details');
-          // Fetch accepted provider details
-          const gigStatus = await apiCall<any>(`/api/gigs/${mostRecentGig.id}/status`);
-          if (gigStatus.providerContact) {
-            setAcceptedProviderDetails(gigStatus.providerContact);
-            console.log('Provider contact details:', gigStatus.providerContact);
+          try {
+            // Fetch accepted provider details
+            const gigStatus = await apiCall<any>(`/api/gigs/${mostRecentGig.id}/status`);
+            if (gigStatus.providerContact && isMountedRef.current) {
+              setAcceptedProviderDetails(gigStatus.providerContact);
+              console.log('Provider contact details:', gigStatus.providerContact);
+            }
+          } catch (statusError) {
+            console.error('Error fetching gig status:', statusError);
+            // Don't fail the whole fetch if status fails
           }
         } else if (mostRecentGig.status === 'open') {
           console.log('Gig is open, calculating time remaining and fetching matches');
@@ -92,25 +105,45 @@ export default function ProfileScreen() {
           const now = Date.now();
           const elapsed = Math.floor((now - createdAt) / 1000);
           const remaining = Math.max(0, 180 - elapsed); // 3 minutes = 180 seconds
-          setTimeRemaining(remaining);
-          console.log('Time remaining for selection:', remaining, 'seconds');
+          
+          if (isMountedRef.current) {
+            setTimeRemaining(remaining);
+            console.log('Time remaining for selection:', remaining, 'seconds');
+          }
 
           // Fetch matched providers
-          const matches = await apiCall<MatchedProvider[]>(`/api/gigs/${mostRecentGig.id}/matched-providers`);
-          setMatchedProviders(matches || []);
-          console.log('Matched providers fetched:', matches?.length || 0);
+          try {
+            const matches = await apiCall<MatchedProvider[]>(`/api/gigs/${mostRecentGig.id}/matched-providers`);
+            if (isMountedRef.current) {
+              setMatchedProviders(matches || []);
+              console.log('Matched providers fetched:', matches?.length || 0);
+            }
+          } catch (matchError) {
+            console.error('Error fetching matched providers:', matchError);
+            // Don't fail the whole fetch if matches fail
+            if (isMountedRef.current) {
+              setMatchedProviders([]);
+            }
+          }
         }
       } else {
         console.log('No gigs found for client');
-        setRecentGig(null);
-        setMatchedProviders([]);
+        if (isMountedRef.current) {
+          setRecentGig(null);
+          setMatchedProviders([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching gig and matches:', error);
-      setRecentGig(null);
-      setMatchedProviders([]);
+      if (isMountedRef.current) {
+        setRecentGig(null);
+        setMatchedProviders([]);
+        setFetchError(error instanceof Error ? error.message : 'Failed to load gig data');
+      }
     } finally {
-      setLoadingMatches(false);
+      if (isMountedRef.current) {
+        setLoadingMatches(false);
+      }
     }
   }, [isClient, user?.id]);
 
@@ -119,6 +152,8 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       console.log('Profile screen focused, fetching data');
+      isMountedRef.current = true;
+      
       if (isClient && user?.id) {
         fetchRecentGigAndMatches();
       }
@@ -126,6 +161,7 @@ export default function ProfileScreen() {
       // Cleanup function
       return () => {
         console.log('Profile screen unfocused');
+        isMountedRef.current = false;
       };
     }, [isClient, user?.id, fetchRecentGigAndMatches])
   );
@@ -271,7 +307,7 @@ export default function ProfileScreen() {
         <View style={[styles.header, { backgroundColor: theme.dark ? colors.cardDark : colors.card }]}>
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarText}>
-              {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+              {user.firstName?.charAt(0) || 'U'}{user.lastName?.charAt(0) || 'U'}
             </Text>
           </View>
           <Text style={[styles.name, { color: theme.colors.text }]}>
@@ -288,127 +324,145 @@ export default function ProfileScreen() {
         </View>
 
         {/* Client: Matched Providers Section */}
-        {isClient && recentGig && (
-          <View style={[styles.section, { backgroundColor: theme.dark ? colors.cardDark : colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              Recent Gig
-            </Text>
-            
-            <View style={styles.gigInfo}>
-              <Text style={[styles.gigCategory, { color: theme.colors.text }]}>
-                {recentGig.category}
-              </Text>
-              <Text style={[styles.gigStatus, { color: recentGig.status === 'accepted' ? colors.success : colors.primary }]}>
-                {recentGig.status === 'accepted' ? 'Accepted' : 'Open'}
-              </Text>
-            </View>
-
-            {/* Show accepted provider details */}
-            {recentGig.status === 'accepted' && acceptedProviderDetails && (
-              <View style={[styles.acceptedProviderCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#f9f9f9' }]}>
-                <Text style={[styles.acceptedTitle, { color: colors.success }]}>
-                  Gig Accepted!
+        {isClient && (
+          <>
+            {fetchError && (
+              <View style={[styles.errorCard, { backgroundColor: theme.dark ? '#2a1a1a' : '#ffe0e0' }]}>
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {fetchError}
                 </Text>
-                <View style={styles.providerContactRow}>
-                  <Text style={[styles.contactLabel, { color: theme.dark ? '#98989D' : '#666' }]}>
-                    Provider:
-                  </Text>
-                  <Text style={[styles.contactValue, { color: theme.colors.text }]}>
-                    {acceptedProviderDetails.name}
-                  </Text>
-                </View>
-                <View style={styles.providerContactRow}>
-                  <Text style={[styles.contactLabel, { color: theme.dark ? '#98989D' : '#666' }]}>
-                    Code:
-                  </Text>
-                  <Text style={[styles.contactValue, { color: theme.colors.text }]}>
-                    {acceptedProviderDetails.providerCode}
-                  </Text>
-                </View>
-                <View style={styles.providerContactRow}>
-                  <Text style={[styles.contactLabel, { color: theme.dark ? '#98989D' : '#666' }]}>
-                    Phone:
-                  </Text>
-                  <Text style={[styles.contactValue, { color: colors.primary }]}>
-                    {acceptedProviderDetails.phoneNumber}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  style={[styles.retryButton, { backgroundColor: colors.primary }]}
+                  onPress={fetchRecentGigAndMatches}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
               </View>
             )}
 
-            {/* Show selection timer and matched providers */}
-            {recentGig.status === 'open' && !recentGig.selectedProviderId && timeRemaining > 0 && (
-              <>
-                <View style={[styles.timerCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#fff3cd' }]}>
-                  <IconSymbol
-                    ios_icon_name="clock"
-                    android_material_icon_name="access-time"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text style={[styles.timerText, { color: theme.colors.text }]}>
-                    Time to select: {timeDisplay}
+            {recentGig && (
+              <View style={[styles.section, { backgroundColor: theme.dark ? colors.cardDark : colors.card }]}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                  Recent Gig
+                </Text>
+                
+                <View style={styles.gigInfo}>
+                  <Text style={[styles.gigCategory, { color: theme.colors.text }]}>
+                    {recentGig.category}
+                  </Text>
+                  <Text style={[styles.gigStatus, { color: recentGig.status === 'accepted' ? colors.success : colors.primary }]}>
+                    {recentGig.status === 'accepted' ? 'Accepted' : 'Open'}
                   </Text>
                 </View>
 
-                {loadingMatches ? (
-                  <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-                ) : matchedProviders.length > 0 ? (
-                  <>
-                    <Text style={[styles.matchedTitle, { color: theme.colors.text }]}>
-                      Top Matched Service Providers
+                {/* Show accepted provider details */}
+                {recentGig.status === 'accepted' && acceptedProviderDetails && (
+                  <View style={[styles.acceptedProviderCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#f9f9f9' }]}>
+                    <Text style={[styles.acceptedTitle, { color: colors.success }]}>
+                      Gig Accepted!
                     </Text>
-                    {matchedProviders.map((provider, index) => (
-                      <View key={index} style={[styles.providerCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#f9f9f9' }]}>
-                        <Image
-                          source={resolveImageSource(provider.photoUrl)}
-                          style={styles.providerPhoto}
-                        />
-                        <View style={styles.providerInfo}>
-                          <Text style={[styles.providerCodeText, { color: theme.colors.text }]}>
-                            {provider.providerCode}
-                          </Text>
-                          <Text style={[styles.providerGender, { color: theme.dark ? '#98989D' : '#666' }]}>
-                            {provider.gender}
-                          </Text>
-                          {provider.distance && (
-                            <Text style={[styles.providerDistance, { color: theme.dark ? '#98989D' : '#666' }]}>
-                              {provider.distance.toFixed(1)} km away
-                            </Text>
-                          )}
-                        </View>
-                        <TouchableOpacity
-                          style={[styles.selectButton, { backgroundColor: colors.primary }]}
-                          onPress={() => handleSelectProvider(provider)}
-                        >
-                          <Text style={styles.selectButtonText}>
-                            Select
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </>
-                ) : (
-                  <Text style={[styles.noMatchesText, { color: theme.dark ? '#98989D' : '#666' }]}>
-                    No matched providers available
-                  </Text>
+                    <View style={styles.providerContactRow}>
+                      <Text style={[styles.contactLabel, { color: theme.dark ? '#98989D' : '#666' }]}>
+                        Provider:
+                      </Text>
+                      <Text style={[styles.contactValue, { color: theme.colors.text }]}>
+                        {acceptedProviderDetails.name}
+                      </Text>
+                    </View>
+                    <View style={styles.providerContactRow}>
+                      <Text style={[styles.contactLabel, { color: theme.dark ? '#98989D' : '#666' }]}>
+                        Code:
+                      </Text>
+                      <Text style={[styles.contactValue, { color: theme.colors.text }]}>
+                        {acceptedProviderDetails.providerCode}
+                      </Text>
+                    </View>
+                    <View style={styles.providerContactRow}>
+                      <Text style={[styles.contactLabel, { color: theme.dark ? '#98989D' : '#666' }]}>
+                        Phone:
+                      </Text>
+                      <Text style={[styles.contactValue, { color: colors.primary }]}>
+                        {acceptedProviderDetails.phoneNumber}
+                      </Text>
+                    </View>
+                  </View>
                 )}
-              </>
-            )}
 
-            {/* Show waiting for provider response */}
-            {recentGig.status === 'open' && recentGig.selectedProviderId && !recentGig.acceptedProviderId && (
-              <View style={[styles.waitingCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#e7f3ff' }]}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.waitingText, { color: theme.colors.text }]}>
-                  Waiting for provider response...
-                </Text>
-                <Text style={[styles.waitingSubtext, { color: theme.dark ? '#98989D' : '#666' }]}>
-                  If they decline or don&apos;t respond in 3 minutes, the gig will be broadcast to all matched providers.
-                </Text>
+                {/* Show selection timer and matched providers */}
+                {recentGig.status === 'open' && !recentGig.selectedProviderId && timeRemaining > 0 && (
+                  <>
+                    <View style={[styles.timerCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#fff3cd' }]}>
+                      <IconSymbol
+                        ios_icon_name="clock"
+                        android_material_icon_name="access-time"
+                        size={20}
+                        color={colors.primary}
+                      />
+                      <Text style={[styles.timerText, { color: theme.colors.text }]}>
+                        Time to select: {timeDisplay}
+                      </Text>
+                    </View>
+
+                    {loadingMatches ? (
+                      <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+                    ) : matchedProviders.length > 0 ? (
+                      <>
+                        <Text style={[styles.matchedTitle, { color: theme.colors.text }]}>
+                          Top Matched Service Providers
+                        </Text>
+                        {matchedProviders.map((provider, index) => (
+                          <View key={index} style={[styles.providerCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#f9f9f9' }]}>
+                            <Image
+                              source={resolveImageSource(provider.photoUrl)}
+                              style={styles.providerPhoto}
+                            />
+                            <View style={styles.providerInfo}>
+                              <Text style={[styles.providerCodeText, { color: theme.colors.text }]}>
+                                {provider.providerCode}
+                              </Text>
+                              <Text style={[styles.providerGender, { color: theme.dark ? '#98989D' : '#666' }]}>
+                                {provider.gender}
+                              </Text>
+                              {provider.distance && (
+                                <Text style={[styles.providerDistance, { color: theme.dark ? '#98989D' : '#666' }]}>
+                                  {provider.distance.toFixed(1)} km away
+                                </Text>
+                              )}
+                            </View>
+                            <TouchableOpacity
+                              style={[styles.selectButton, { backgroundColor: colors.primary }]}
+                              onPress={() => handleSelectProvider(provider)}
+                            >
+                              <Text style={styles.selectButtonText}>
+                                Select
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </>
+                    ) : (
+                      <Text style={[styles.noMatchesText, { color: theme.dark ? '#98989D' : '#666' }]}>
+                        No matched providers available
+                      </Text>
+                    )}
+                  </>
+                )}
+
+                {/* Show waiting for provider response */}
+                {recentGig.status === 'open' && recentGig.selectedProviderId && !recentGig.acceptedProviderId && (
+                  <View style={[styles.waitingCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#e7f3ff' }]}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={[styles.waitingText, { color: theme.colors.text }]}>
+                      Waiting for provider response...
+                    </Text>
+                    <Text style={[styles.waitingSubtext, { color: theme.dark ? '#98989D' : '#666' }]}>
+                      If they decline or don&apos;t respond in 3 minutes, the gig will be broadcast to all matched providers.
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
-          </View>
+          </>
         )}
 
         {isProvider && (
@@ -611,6 +665,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
+  },
+  errorCard: {
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   gigInfo: {
     flexDirection: 'row',

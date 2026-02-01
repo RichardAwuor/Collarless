@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ScrollView,
   useColorScheme,
-  Alert,
   Platform,
   Image,
   ImageSourcePropType,
@@ -30,6 +29,36 @@ function resolveImageSource(source: string | number | ImageSourcePropType | unde
   return source as ImageSourcePropType;
 }
 
+// Custom Modal for errors (cross-platform compatible)
+function ErrorModal({ visible, title, message, onClose }: { visible: boolean; title: string; message: string; onClose: () => void }) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgColor = isDark ? colors.cardDark : colors.card;
+  const textColor = isDark ? colors.textDark : colors.text;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.errorModalOverlay}>
+        <View style={[styles.errorModalContent, { backgroundColor: bgColor }]}>
+          <Text style={[styles.errorModalTitle, { color: colors.error }]}>{title}</Text>
+          <Text style={[styles.errorModalMessage, { color: textColor }]}>{message}</Text>
+          <TouchableOpacity
+            style={[styles.errorModalButton, { backgroundColor: colors.primary }]}
+            onPress={onClose}
+          >
+            <Text style={styles.errorModalButtonText}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function PostGigScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -49,6 +78,7 @@ export default function PostGigScreen() {
   const [paymentOffer, setPaymentOffer] = useState('');
   const [preferredGender, setPreferredGender] = useState<'any' | 'male' | 'female'>('any');
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState({ visible: false, title: '', message: '' });
 
   console.log('Post gig screen loaded');
 
@@ -74,34 +104,38 @@ export default function PostGigScreen() {
   const dateDisplay = formatDate(serviceDate);
   const timeDisplay = formatTime(serviceTime);
 
+  const showError = (title: string, message: string) => {
+    setErrorModal({ visible: true, title, message });
+  };
+
   const handlePostGig = async () => {
     console.log('Posting gig', { category, serviceDate, address, paymentOffer });
 
     if (!category) {
-      Alert.alert('Error', 'Please select a service category');
+      showError('Error', 'Please select a service category');
       return;
     }
 
     if (!address || address.length > 30) {
-      Alert.alert('Error', 'Address must be between 1 and 30 characters');
+      showError('Error', 'Address must be between 1 and 30 characters');
       return;
     }
 
     if (!description || description.length > 160) {
-      Alert.alert('Error', 'Description must be between 1 and 160 characters');
+      showError('Error', 'Description must be between 1 and 160 characters');
       return;
     }
 
     const payment = parseInt(paymentOffer, 10);
     if (isNaN(payment) || payment < 1) {
-      Alert.alert('Error', 'Please enter a valid payment amount');
+      showError('Error', 'Please enter a valid payment amount');
       return;
     }
 
     const days = parseInt(durationDays, 10);
     const hours = parseInt(durationHours, 10);
     if (isNaN(days) || isNaN(hours) || (days === 0 && hours === 0)) {
-      Alert.alert('Error', 'Duration must be at least 1 hour');
+      showError('Error', 'Duration must be at least 1 hour');
       return;
     }
 
@@ -127,7 +161,7 @@ export default function PostGigScreen() {
 
       console.log('Sending post gig request:', requestBody);
 
-      const data = await apiCall('/api/gigs', {
+      const data = await apiCall<{ id: string }>('/api/gigs', {
         method: 'POST',
         body: JSON.stringify(requestBody),
       });
@@ -135,12 +169,16 @@ export default function PostGigScreen() {
       console.log('Gig posted successfully:', data);
       setLoading(false);
       
-      // Navigate to profile to see matched providers
-      router.replace('/(tabs)/profile');
+      // Navigate to profile - the profile screen will fetch the most recent gig automatically
+      // Using setTimeout to ensure state is fully updated before navigation
+      setTimeout(() => {
+        console.log('Navigating to profile after gig post');
+        router.replace('/(tabs)/profile');
+      }, 100);
     } catch (error) {
       console.error('Error posting gig:', error);
       setLoading(false);
-      Alert.alert(
+      showError(
         'Error',
         error instanceof Error ? error.message : 'Failed to post gig. Please try again.'
       );
@@ -442,6 +480,14 @@ export default function PostGigScreen() {
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Error Modal */}
+      <ErrorModal
+        visible={errorModal.visible}
+        title={errorModal.title}
+        message={errorModal.message}
+        onClose={() => setErrorModal({ visible: false, title: '', message: '' })}
+      />
     </>
   );
 }
@@ -564,5 +610,36 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 16,
     flex: 1,
+  },
+  errorModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorModalContent: {
+    width: '85%',
+    padding: 24,
+    borderRadius: 12,
+    gap: 16,
+  },
+  errorModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  errorModalMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  errorModalButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  errorModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
