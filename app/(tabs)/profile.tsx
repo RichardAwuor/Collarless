@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, ImageSourcePropType, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useUser } from '@/contexts/UserContext';
 import { colors } from '@/styles/commonStyles';
@@ -49,6 +49,8 @@ export default function ProfileScreen() {
   const [selectedProvider, setSelectedProvider] = useState<MatchedProvider | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [acceptedProviderDetails, setAcceptedProviderDetails] = useState<any>(null);
+  
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log('Profile screen loaded');
 
@@ -57,70 +59,100 @@ export default function ProfileScreen() {
   const isSubscribed = provider?.subscriptionStatus === 'active';
 
   const fetchRecentGigAndMatches = useCallback(async () => {
-    if (!isClient || !user?.id) return;
+    if (!isClient || !user?.id) {
+      console.log('Skipping fetch: not a client or no user ID');
+      return;
+    }
 
-    console.log('Fetching recent gig and matched providers');
+    console.log('Fetching recent gig and matched providers for client:', user.id);
     setLoadingMatches(true);
     
     try {
       // Fetch client's gigs
-      const gigs = await apiCall<RecentGig[]>(`/api/gigs/client/${user?.id}`);
+      const gigs = await apiCall<RecentGig[]>(`/api/gigs/client/${user.id}`);
       
       if (gigs && gigs.length > 0) {
         const mostRecentGig = gigs[0];
         setRecentGig(mostRecentGig);
-        console.log('Recent gig:', mostRecentGig);
+        console.log('Recent gig fetched:', mostRecentGig);
 
         // Check if gig is accepted
         if (mostRecentGig.status === 'accepted' && mostRecentGig.acceptedProviderId) {
+          console.log('Gig is accepted, fetching provider details');
           // Fetch accepted provider details
           const gigStatus = await apiCall<any>(`/api/gigs/${mostRecentGig.id}/status`);
           if (gigStatus.providerContact) {
             setAcceptedProviderDetails(gigStatus.providerContact);
+            console.log('Provider contact details:', gigStatus.providerContact);
           }
         } else if (mostRecentGig.status === 'open') {
+          console.log('Gig is open, calculating time remaining and fetching matches');
           // Calculate time remaining for selection
           const createdAt = new Date(mostRecentGig.createdAt).getTime();
           const now = Date.now();
           const elapsed = Math.floor((now - createdAt) / 1000);
           const remaining = Math.max(0, 180 - elapsed); // 3 minutes = 180 seconds
           setTimeRemaining(remaining);
+          console.log('Time remaining for selection:', remaining, 'seconds');
 
           // Fetch matched providers
           const matches = await apiCall<MatchedProvider[]>(`/api/gigs/${mostRecentGig.id}/matched-providers`);
           setMatchedProviders(matches || []);
-          console.log('Matched providers:', matches);
+          console.log('Matched providers fetched:', matches?.length || 0);
         }
+      } else {
+        console.log('No gigs found for client');
+        setRecentGig(null);
+        setMatchedProviders([]);
       }
     } catch (error) {
       console.error('Error fetching gig and matches:', error);
+      setRecentGig(null);
+      setMatchedProviders([]);
     } finally {
       setLoadingMatches(false);
     }
   }, [isClient, user?.id]);
 
-  // Fetch recent gig and matched providers for clients on mount and when user changes
-  useEffect(() => {
-    if (isClient && user?.id) {
-      console.log('Initial fetch of gig data');
-      fetchRecentGigAndMatches();
-    }
-  }, [isClient, user?.id, fetchRecentGigAndMatches]);
+  // Use useFocusEffect to fetch data whenever the screen comes into focus
+  // This ensures data is fetched when navigating from post-gig screen
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Profile screen focused, fetching data');
+      if (isClient && user?.id) {
+        fetchRecentGigAndMatches();
+      }
+      
+      // Cleanup function
+      return () => {
+        console.log('Profile screen unfocused');
+      };
+    }, [isClient, user?.id, fetchRecentGigAndMatches])
+  );
 
   // Poll for gig status updates when there's an active gig
   useEffect(() => {
+    // Clear any existing polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
     if (isClient && recentGig && (recentGig.status === 'open' || recentGig.selectedProviderId)) {
       console.log('Starting polling for gig status updates');
-      const pollInterval = setInterval(() => {
+      pollingIntervalRef.current = setInterval(() => {
         console.log('Polling for gig status updates');
         fetchRecentGigAndMatches();
       }, 5000); // Poll every 5 seconds
-
-      return () => {
-        console.log('Stopping polling');
-        clearInterval(pollInterval);
-      };
     }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        console.log('Stopping polling');
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
   }, [isClient, recentGig?.id, recentGig?.status, recentGig?.selectedProviderId, fetchRecentGigAndMatches]);
 
   // Timer countdown
