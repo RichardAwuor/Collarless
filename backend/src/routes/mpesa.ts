@@ -126,10 +126,14 @@ export function registerMpesaRoutes(app: App, fastify: FastifyInstance) {
       }
 
       const timestamp = getTimestamp();
-      // Production passkey from Safaricom M-Pesa portal
-      // IMPORTANT: This must be the actual production passkey for shortcode 6803513
-      // If not available, contact Safaricom to get the Lipa Na M-Pesa Online Passkey
-      const passkey = process.env.MPESA_PASSKEY || '6803513';
+
+      // Validate passkey is configured
+      const passkey = process.env.MPESA_PASSKEY;
+      if (!passkey) {
+        app.logger.error({ providerId }, 'M-Pesa passkey not configured');
+        return reply.status(500).send({ error: 'M-Pesa configuration incomplete. Please contact support.' });
+      }
+
       const password = generatePassword(SHORTCODE, passkey, timestamp);
 
       const merchantRequestId = `MR-${Date.now()}-${providerId}`;
