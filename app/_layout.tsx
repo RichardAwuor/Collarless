@@ -1,4 +1,5 @@
 
+
 import { useNetworkState } from 'expo-network';
 import { SystemBars } from 'react-native-edge-to-edge';
 import * as SplashScreen from 'expo-splash-screen';
@@ -103,6 +104,7 @@ export default function RootLayout() {
               <Stack.Screen name="register-provider" options={{ headerShown: false }} />
               <Stack.Screen name="subscription-payment" options={{ headerShown: false }} />
               <Stack.Screen name="post-gig" options={{ headerShown: false }} />
+              <Stack.Screen name="payment-simulator" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             </Stack>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
