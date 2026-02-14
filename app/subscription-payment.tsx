@@ -42,7 +42,7 @@ export default function SubscriptionPaymentScreen() {
       <View style={styles.content}>
         <View style={styles.imageContainer}>
           <Image
-            source={resolveImageSource(require('@/assets/images/871f8a15-4ffb-4ff8-a0ba-ba2f8b2f206f.png'))}
+            source={resolveImageSource(require('@/assets/images/e552cdd3-9483-4da6-b178-06617f4609bc.png'))}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -52,7 +52,7 @@ export default function SubscriptionPaymentScreen() {
           {transitioningText}
         </Text>
         
-        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        <ActivityIndicator size="large" color="#FF0000" style={styles.loader} />
       </View>
     </SafeAreaView>
   );

@@ -339,7 +339,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.logoHeader}>
           <Image
-            source={resolveImageSource(require('@/assets/images/871f8a15-4ffb-4ff8-a0ba-ba2f8b2f206f.png'))}
+            source={resolveImageSource(require('@/assets/images/e552cdd3-9483-4da6-b178-06617f4609bc.png'))}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -348,7 +348,7 @@ export default function ProfileScreen() {
         <View style={[styles.header, { backgroundColor: theme.dark ? colors.cardDark : colors.card }]}>
           <View style={styles.avatarImageContainer}>
             <Image
-              source={resolveImageSource(require('@/assets/images/871f8a15-4ffb-4ff8-a0ba-ba2f8b2f206f.png'))}
+              source={resolveImageSource(require('@/assets/images/e552cdd3-9483-4da6-b178-06617f4609bc.png'))}
               style={styles.avatarImage}
               resizeMode="contain"
             />
@@ -598,7 +598,7 @@ export default function ProfileScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.logoutButton, { backgroundColor: colors.error }]}
+          style={[styles.logoutButton, { backgroundColor: colors.primary }]}
           onPress={handleLogout}
         >
           <IconSymbol

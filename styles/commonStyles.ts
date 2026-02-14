@@ -2,7 +2,7 @@
 import { StyleSheet } from 'react-native';
 
 export const colors = {
-  // NO-COLLAR brand colors - Blue and Golden Yellow
+  // NO-COLLAR brand colors - Red and Golden Yellow
   background: '#FFFFFF', // White background
   backgroundDark: '#1A1A1A', // Dark background
   
@@ -12,8 +12,8 @@ export const colors = {
   textSecondary: '#6B6B6B',
   textSecondaryDark: '#B0B0B0', // Lighter gray for secondary text
   
-  primary: '#1E5BA8', // NO-COLLAR Blue
-  primaryDark: '#2B6BBF', // Lighter blue for dark mode
+  primary: '#FF0000', // Red for all task buttons
+  primaryDark: '#FF3333', // Lighter red for dark mode
   
   secondary: '#D4A843', // NO-COLLAR Golden Yellow
   secondaryDark: '#E5B954',
@@ -24,8 +24,8 @@ export const colors = {
   card: '#F8F9FA',
   cardDark: '#2A2A2A', // Dark card background
   
-  highlight: '#E8F0F8', // Light blue highlight
-  highlightDark: '#2A3F5F', // Darker blue highlight
+  highlight: '#FFE0E0', // Light red highlight
+  highlightDark: '#5F2A2A', // Darker red highlight
   
   border: '#E0E0E0',
   borderDark: '#404040',
