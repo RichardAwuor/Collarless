@@ -30,7 +30,7 @@ export default function RoleSelectScreen() {
     router.push('/register-provider');
   };
 
-  const welcomeText = 'Welcome to Collarless';
+  const welcomeText = 'Welcome to Nyota Ya Kenya';
   const sloganText = 'KAZI IKO';
   const clientText = 'Client';
   const providerText = 'Service provider';
