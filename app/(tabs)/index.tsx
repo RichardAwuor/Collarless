@@ -9,7 +9,6 @@ import {
   useColorScheme,
   TextInput,
   Platform,
-  Alert,
   ActivityIndicator,
   Image,
   ImageSourcePropType,
@@ -29,6 +28,37 @@ function resolveImageSource(source: string | number | ImageSourcePropType | unde
   if (!source) return { uri: '' };
   if (typeof source === 'string') return { uri: source };
   return source as ImageSourcePropType;
+}
+
+// Custom Modal for messages (cross-platform compatible)
+function MessageModal({ visible, title, message, onClose, isError }: { visible: boolean; title: string; message: string; onClose: () => void; isError?: boolean }) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgColor = isDark ? colors.cardDark : colors.card;
+  const textColor = isDark ? colors.textDark : colors.text;
+  const titleColor = isError ? colors.error : colors.success;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.messageModalOverlay}>
+        <View style={[styles.messageModalContent, { backgroundColor: bgColor }]}>
+          <Text style={[styles.messageModalTitle, { color: titleColor }]}>{title}</Text>
+          <Text style={[styles.messageModalMessage, { color: textColor }]}>{message}</Text>
+          <TouchableOpacity
+            style={[styles.messageModalButton, { backgroundColor: colors.primary }]}
+            onPress={onClose}
+          >
+            <Text style={styles.messageModalButtonText}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 export default function HomeScreen() {
@@ -65,6 +95,9 @@ export default function HomeScreen() {
   const [availableGigs, setAvailableGigs] = useState<any[]>([]);
   const [loadingGigs, setLoadingGigs] = useState(false);
   const [postingGig, setPostingGig] = useState(false);
+
+  // Message modal state
+  const [messageModal, setMessageModal] = useState({ visible: false, title: '', message: '', isError: false });
 
   console.log('Home screen loaded');
 
@@ -110,39 +143,43 @@ export default function HomeScreen() {
   const timeDisplay = formatTime(serviceTime);
   const categoryPlaceholder = category || 'Select service category';
 
+  const showMessage = (title: string, message: string, isError: boolean = false) => {
+    setMessageModal({ visible: true, title, message, isError });
+  };
+
   const handlePostGig = async () => {
     console.log('Posting gig', { category, serviceDate, address, paymentOffer });
 
     if (!category) {
-      Alert.alert('Error', 'Please select a service category');
+      showMessage('Error', 'Please select a service category', true);
       return;
     }
 
     if (!address || address.length > 30) {
-      Alert.alert('Error', 'Address must be between 1 and 30 characters');
+      showMessage('Error', 'Address must be between 1 and 30 characters', true);
       return;
     }
 
     if (!description || description.length > 160) {
-      Alert.alert('Error', 'Description must be between 1 and 160 characters');
+      showMessage('Error', 'Description must be between 1 and 160 characters', true);
       return;
     }
 
     const payment = parseInt(paymentOffer, 10);
     if (isNaN(payment) || payment < 1) {
-      Alert.alert('Error', 'Please enter a valid payment amount');
+      showMessage('Error', 'Please enter a valid payment amount', true);
       return;
     }
 
     const days = parseInt(durationDays, 10);
     const hours = parseInt(durationHours, 10);
     if (isNaN(days) || isNaN(hours) || (days === 0 && hours === 0)) {
-      Alert.alert('Error', 'Duration must be at least 1 hour');
+      showMessage('Error', 'Duration must be at least 1 hour', true);
       return;
     }
 
     if (!user?.id) {
-      Alert.alert('Error', 'User not found. Please log in again.');
+      showMessage('Error', 'User not found. Please log in again.', true);
       return;
     }
 
@@ -171,7 +208,7 @@ export default function HomeScreen() {
 
       console.log('Post gig response:', data);
 
-      Alert.alert('Success', 'Gig posted successfully!');
+      showMessage('Success', 'Gig posted successfully!', false);
       
       // Reset form
       setCategory('');
@@ -185,7 +222,7 @@ export default function HomeScreen() {
       setPaymentOffer('');
     } catch (error) {
       console.error('Error posting gig:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to post gig. Please try again.');
+      showMessage('Error', error instanceof Error ? error.message : 'Failed to post gig. Please try again.', true);
     } finally {
       setPostingGig(false);
     }
@@ -195,7 +232,7 @@ export default function HomeScreen() {
     console.log('Accepting gig', gigId);
 
     if (!provider?.id) {
-      Alert.alert('Error', 'Provider not found. Please log in again.');
+      showMessage('Error', 'Provider not found. Please log in again.', true);
       return;
     }
 
@@ -207,13 +244,13 @@ export default function HomeScreen() {
 
       console.log('Accept gig response:', data);
 
-      Alert.alert('Success', 'Gig accepted successfully!');
+      showMessage('Success', 'Gig accepted successfully!', false);
       
       // Refresh available gigs
       fetchAvailableGigs();
     } catch (error) {
       console.error('Error accepting gig:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to accept gig. Please try again.');
+      showMessage('Error', error instanceof Error ? error.message : 'Failed to accept gig. Please try again.', true);
     }
   };
 
@@ -507,6 +544,15 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Message Modal */}
+        <MessageModal
+          visible={messageModal.visible}
+          title={messageModal.title}
+          message={messageModal.message}
+          isError={messageModal.isError}
+          onClose={() => setMessageModal({ visible: false, title: '', message: '', isError: false })}
+        />
       </SafeAreaView>
     );
   }
@@ -613,6 +659,15 @@ export default function HomeScreen() {
             </React.Fragment>
           )}
         </ScrollView>
+
+        {/* Message Modal */}
+        <MessageModal
+          visible={messageModal.visible}
+          title={messageModal.title}
+          message={messageModal.message}
+          isError={messageModal.isError}
+          onClose={() => setMessageModal({ visible: false, title: '', message: '', isError: false })}
+        />
       </SafeAreaView>
     );
   }
@@ -796,5 +851,36 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 16,
     flex: 1,
+  },
+  messageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageModalContent: {
+    width: '85%',
+    padding: 24,
+    borderRadius: 12,
+    gap: 16,
+  },
+  messageModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  messageModalMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  messageModalButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  messageModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
