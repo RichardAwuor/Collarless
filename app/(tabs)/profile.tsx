@@ -71,7 +71,6 @@ export default function ProfileScreen() {
     setFetchError(null);
     
     try {
-      // Fetch client's gigs
       const gigs = await apiCall<RecentGig[]>(`/api/gigs/client/${user.id}`);
       
       if (!isMountedRef.current) {
@@ -84,11 +83,9 @@ export default function ProfileScreen() {
         setRecentGig(mostRecentGig);
         console.log('Recent gig fetched:', mostRecentGig);
 
-        // Check if gig is accepted
         if (mostRecentGig.status === 'accepted' && mostRecentGig.acceptedProviderId) {
           console.log('Gig is accepted, fetching provider details');
           try {
-            // Fetch accepted provider details
             const gigStatus = await apiCall<any>(`/api/gigs/${mostRecentGig.id}/status`);
             if (gigStatus.providerContact && isMountedRef.current) {
               setAcceptedProviderDetails(gigStatus.providerContact);
@@ -96,22 +93,19 @@ export default function ProfileScreen() {
             }
           } catch (statusError) {
             console.error('Error fetching gig status:', statusError);
-            // Don't fail the whole fetch if status fails
           }
         } else if (mostRecentGig.status === 'open') {
           console.log('Gig is open, calculating time remaining and fetching matches');
-          // Calculate time remaining for selection
           const createdAt = new Date(mostRecentGig.createdAt).getTime();
           const now = Date.now();
           const elapsed = Math.floor((now - createdAt) / 1000);
-          const remaining = Math.max(0, 180 - elapsed); // 3 minutes = 180 seconds
+          const remaining = Math.max(0, 180 - elapsed);
           
           if (isMountedRef.current) {
             setTimeRemaining(remaining);
             console.log('Time remaining for selection:', remaining, 'seconds');
           }
 
-          // Fetch matched providers
           try {
             const matches = await apiCall<MatchedProvider[]>(`/api/gigs/${mostRecentGig.id}/matched-providers`);
             if (isMountedRef.current) {
@@ -120,7 +114,6 @@ export default function ProfileScreen() {
             }
           } catch (matchError) {
             console.error('Error fetching matched providers:', matchError);
-            // Don't fail the whole fetch if matches fail
             if (isMountedRef.current) {
               setMatchedProviders([]);
             }
@@ -147,8 +140,6 @@ export default function ProfileScreen() {
     }
   }, [isClient, user?.id]);
 
-  // Use useFocusEffect to fetch data whenever the screen comes into focus
-  // This ensures data is fetched when navigating from post-gig screen
   useFocusEffect(
     useCallback(() => {
       console.log('Profile screen focused, fetching data');
@@ -158,7 +149,6 @@ export default function ProfileScreen() {
         fetchRecentGigAndMatches();
       }
       
-      // Cleanup function
       return () => {
         console.log('Profile screen unfocused');
         isMountedRef.current = false;
@@ -166,9 +156,7 @@ export default function ProfileScreen() {
     }, [isClient, user?.id, fetchRecentGigAndMatches])
   );
 
-  // Poll for gig status updates when there's an active gig
   useEffect(() => {
-    // Clear any existing polling interval
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
@@ -179,7 +167,7 @@ export default function ProfileScreen() {
       pollingIntervalRef.current = setInterval(() => {
         console.log('Polling for gig status updates');
         fetchRecentGigAndMatches();
-      }, 5000); // Poll every 5 seconds
+      }, 5000);
     }
 
     return () => {
@@ -191,7 +179,6 @@ export default function ProfileScreen() {
     };
   }, [isClient, recentGig?.id, recentGig?.status, recentGig?.selectedProviderId, fetchRecentGigAndMatches]);
 
-  // Timer countdown
   useEffect(() => {
     if (timeRemaining > 0 && recentGig && !recentGig.selectedProviderId && !recentGig.acceptedProviderId) {
       const timer = setInterval(() => {
@@ -229,13 +216,11 @@ export default function ProfileScreen() {
 
       console.log('Provider selected successfully');
       
-      // Update gig state
       setRecentGig({
         ...recentGig,
         selectedProviderId: selectedProvider.id,
       });
 
-      // Clear timer and matched providers list
       setTimeRemaining(0);
       setMatchedProviders([]);
     } catch (error) {
@@ -256,7 +241,6 @@ export default function ProfileScreen() {
 
       console.log('Gig broadcast successfully');
       
-      // Clear matched providers
       setMatchedProviders([]);
       setTimeRemaining(0);
     } catch (error) {
@@ -339,9 +323,10 @@ export default function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.logoHeader}>
-          <View style={styles.initialsCircle}>
-            <Text style={styles.initialsText}>{initials}</Text>
-          </View>
+          <Image
+            source={require('@/assets/images/a02530b3-0745-4b2a-9792-a81a3be12d74.png')}
+            style={styles.appLogo}
+          />
         </View>
 
         <View style={[styles.header, { backgroundColor: theme.dark ? colors.cardDark : colors.card }]}>
@@ -361,7 +346,6 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Client: Matched Providers Section */}
         {isClient && (
           <>
             {fetchError && (
@@ -393,7 +377,6 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
 
-                {/* Show accepted provider details */}
                 {recentGig.status === 'accepted' && acceptedProviderDetails && (
                   <View style={[styles.acceptedProviderCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#f9f9f9' }]}>
                     <Text style={[styles.acceptedTitle, { color: colors.success }]}>
@@ -426,7 +409,6 @@ export default function ProfileScreen() {
                   </View>
                 )}
 
-                {/* Show selection timer and matched providers */}
                 {recentGig.status === 'open' && !recentGig.selectedProviderId && timeRemaining > 0 && (
                   <>
                     <View style={[styles.timerCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#fff3cd' }]}>
@@ -489,7 +471,6 @@ export default function ProfileScreen() {
                   </>
                 )}
 
-                {/* Show waiting for provider response */}
                 {recentGig.status === 'open' && recentGig.selectedProviderId && !recentGig.acceptedProviderId && (
                   <View style={[styles.waitingCard, { backgroundColor: theme.dark ? '#1a1a1a' : '#e7f3ff' }]}>
                     <ActivityIndicator size="small" color={colors.primary} />
@@ -606,7 +587,6 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Confirmation Modal */}
       <Modal
         visible={showConfirmModal}
         animationType="fade"
@@ -663,18 +643,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  initialsCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FF0000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  initialsText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  appLogo: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   header: {
     padding: 24,
