@@ -5,7 +5,7 @@
     "slug": "Nyota",
     "version": "1.0.17",
     "orientation": "portrait",
-    "icon": "./assets/images/79d899ba-dddb-43f7-854c-9098be0cd34e.png",
+    "icon": "./assets/images/8ef275bc-8f51-4955-80a7-99df5ae572b7.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -19,11 +19,11 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "icon": "./assets/images/79d899ba-dddb-43f7-854c-9098be0cd34e.png"
+      "icon": "./assets/images/8ef275bc-8f51-4955-80a7-99df5ae572b7.png"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/79d899ba-dddb-43f7-854c-9098be0cd34e.png",
+        "foregroundImage": "./assets/images/8ef275bc-8f51-4955-80a7-99df5ae572b7.png",
         "backgroundColor": "#00D98E"
       },
       "edgeToEdgeEnabled": true,
@@ -31,7 +31,7 @@
       "versionCode": 18
     },
     "web": {
-      "favicon": "./assets/images/79d899ba-dddb-43f7-854c-9098be0cd34e.png",
+      "favicon": "./assets/images/8ef275bc-8f51-4955-80a7-99df5ae572b7.png",
       "bundler": "metro"
     },
     "plugins": [
