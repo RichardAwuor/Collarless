@@ -456,6 +456,25 @@ export default function RegisterProviderScreen() {
             )}
           </TouchableOpacity>
 
+          <View style={[styles.privacyNotice, { backgroundColor: isDark ? 'rgba(52, 199, 89, 0.1)' : 'rgba(52, 199, 89, 0.08)' }]}>
+            <View style={styles.privacyIconContainer}>
+              <IconSymbol
+                ios_icon_name="lock.shield.fill"
+                android_material_icon_name="verified-user"
+                size={20}
+                color="#34C759"
+              />
+            </View>
+            <View style={styles.privacyTextContainer}>
+              <Text style={[styles.privacyTitle, { color: textColor }]}>
+                Your Photo is Safe
+              </Text>
+              <Text style={[styles.privacyText, { color: textColor }]}>
+                Nyota-KE does not store your photo data. Your image is securely uploaded and used only for profile display to help clients identify service providers.
+              </Text>
+            </View>
+          </View>
+
           <Text style={[styles.label, { color: textColor }]}>County *</Text>
           <TouchableOpacity
             style={[styles.countyButton, { backgroundColor: inputBg, borderColor }]}
@@ -813,6 +832,29 @@ const styles = StyleSheet.create({
     width: 120,
     height: 160,
     borderRadius: 8,
+  },
+  privacyNotice: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+    marginTop: -8,
+  },
+  privacyIconContainer: {
+    paddingTop: 2,
+  },
+  privacyTextContainer: {
+    flex: 1,
+    gap: 4,
+  },
+  privacyTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  privacyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.8,
   },
   countyButton: {
     borderRadius: 8,
