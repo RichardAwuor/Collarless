@@ -179,6 +179,26 @@ export default function ProfileScreen() {
     };
   }, [isClient, recentGig?.id, recentGig?.status, recentGig?.selectedProviderId, fetchRecentGigAndMatches]);
 
+  const handleBroadcastGig = useCallback(async () => {
+    if (!recentGig) return;
+
+    console.log('Broadcasting gig to universe');
+    
+    try {
+      await apiCall(`/api/gigs/${recentGig.id}/broadcast`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+
+      console.log('Gig broadcast successfully');
+      
+      setMatchedProviders([]);
+      setTimeRemaining(0);
+    } catch (error) {
+      console.error('Error broadcasting gig:', error);
+    }
+  }, [recentGig]);
+
   useEffect(() => {
     if (timeRemaining > 0 && recentGig && !recentGig.selectedProviderId && !recentGig.acceptedProviderId) {
       const timer = setInterval(() => {
@@ -194,7 +214,7 @@ export default function ProfileScreen() {
 
       return () => clearInterval(timer);
     }
-  }, [timeRemaining, recentGig]);
+  }, [timeRemaining, recentGig, handleBroadcastGig]);
 
   const handleSelectProvider = (provider: MatchedProvider) => {
     console.log('Provider selected for confirmation:', provider.providerCode);
@@ -225,26 +245,6 @@ export default function ProfileScreen() {
       setMatchedProviders([]);
     } catch (error) {
       console.error('Error selecting provider:', error);
-    }
-  };
-
-  const handleBroadcastGig = async () => {
-    if (!recentGig) return;
-
-    console.log('Broadcasting gig to universe');
-    
-    try {
-      await apiCall(`/api/gigs/${recentGig.id}/broadcast`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
-
-      console.log('Gig broadcast successfully');
-      
-      setMatchedProviders([]);
-      setTimeRemaining(0);
-    } catch (error) {
-      console.error('Error broadcasting gig:', error);
     }
   };
 
