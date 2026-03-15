@@ -157,7 +157,7 @@ export default function PostGigScreen() {
 
   const handleSuccessClose = () => {
     console.log('Success modal closing, navigating to profile');
-    
+
     if (!mountedRef.current) {
       console.log('Component unmounted, skipping navigation');
       return;
@@ -166,10 +166,8 @@ export default function PostGigScreen() {
     setSuccessModal({ visible: false, title: '', message: '' });
 
     try {
-      console.log('Navigating to profile screen');
-      // router.navigate is safer than router.replace for cross-hierarchy
-      // navigation on Android (stack -> tab route)
-      router.navigate('/(tabs)/profile');
+      console.log('Navigating to profile screen via replace');
+      router.replace('/(tabs)/profile');
     } catch (navError) {
       console.error('Navigation error after gig post:', navError);
       try {

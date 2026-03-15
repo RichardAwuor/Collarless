@@ -7,18 +7,16 @@ import { colors } from '@/styles/commonStyles';
 
 export default function TabLayout() {
   const { user } = useUser();
-
   const isClient = user?.userType === 'client';
-  const isProvider = user?.userType === 'provider';
 
   const clientTabs = [
-    { name: 'index', title: 'Home', icon: 'home', label: 'Home', route: '/(tabs)/' },
-    { name: 'profile', title: 'Profile', icon: 'person', label: 'Profile', route: '/(tabs)/profile' },
+    { name: 'index', label: 'Home', icon: 'home', route: '/(tabs)/' },
+    { name: 'profile', label: 'Profile', icon: 'person', route: '/(tabs)/profile' },
   ];
 
   const providerTabs = [
-    { name: 'index', title: 'Gigs', icon: 'work', label: 'Gigs', route: '/(tabs)/' },
-    { name: 'profile', title: 'Profile', icon: 'person', label: 'Profile', route: '/(tabs)/profile' },
+    { name: 'index', label: 'Gigs', icon: 'work', route: '/(tabs)/' },
+    { name: 'profile', label: 'Profile', icon: 'person', route: '/(tabs)/profile' },
   ];
 
   const tabs = isClient ? clientTabs : providerTabs;
@@ -26,13 +24,12 @@ export default function TabLayout() {
   return (
     <React.Fragment>
       <Tabs
-        screenOptions={{
-          headerShown: false,
-        }}
+        screenOptions={{ headerShown: false }}
         tabBar={(props) => <FloatingTabBar {...props} tabs={tabs} />}
       >
-        <Tabs.Screen name="index" />
-        <Tabs.Screen name="profile" />
+        <Tabs.Screen name="index" options={{ headerShown: false }} />
+        <Tabs.Screen name="profile" options={{ headerShown: false }} />
+        <Tabs.Screen name="(home)" options={{ href: null }} />
       </Tabs>
     </React.Fragment>
   );
