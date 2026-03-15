@@ -209,75 +209,76 @@ export default function RegisterProviderScreen() {
 
     setLoading(true);
 
+    const BASE_URL = 'https://9rs686wkexp8cbxgtddvuzrpcv4x9xn8.app.specular.dev';
+    const formattedDate = dateOfBirth.toISOString().split('T')[0];
+    const genderCapitalized = gender.charAt(0).toUpperCase() + gender.slice(1);
+    const requestBody = {
+      email,
+      firstName,
+      lastName,
+      gender: genderCapitalized,
+      dateOfBirth: formattedDate,
+      identityNumber,
+      county: selectedCounty.countyCode,
+      commuteDistance: distance,
+      phoneNumber,
+      services: selectedServices,
+      training: [],
+      ...(profileImage ? { photoUrl: profileImage } : {}),
+    };
+
+    console.log('POST', `${BASE_URL}/api/users/register-provider`);
+    console.log('Request body:', JSON.stringify(requestBody));
+
+    let data: any = {};
     try {
-      const { apiCall } = await import('@/utils/api');
-      
-      // Format date as YYYY-MM-DD for the API
-      const formattedDate = dateOfBirth.toISOString().split('T')[0];
-      
-      const requestBody = {
-        email,
-        firstName,
-        lastName,
-        gender: gender.charAt(0).toUpperCase() + gender.slice(1),
-        dateOfBirth: formattedDate,
-        identityNumber,
-        county: selectedCounty.countyCode,
-        commuteDistance: distance,
-        phoneNumber,
-        services: selectedServices,
-        training: [],
-        ...(profileImage ? { photoUrl: profileImage } : {}),
-      };
-
-      console.log('Sending provider registration request:', requestBody);
-
-      const response = await apiCall('/api/users/register-provider', {
+      const response = await fetch(`${BASE_URL}/api/users/register-provider`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
 
-      console.log('Provider registration response:', response);
+      console.log('Response status:', response.status);
 
-      const registeredUser = {
-        id: response.user.id,
-        email: response.user.email,
-        userType: response.user.userType as 'provider',
-        firstName,
-        lastName,
-        county: selectedCounty.countyName,
-      };
+      const text = await response.text();
+      console.log('Raw response text:', text);
 
-      const registeredProvider = {
-        id: response.provider.id,
-        providerCode: response.provider.providerCode,
-        gender,
-        phoneNumber,
-        subscriptionStatus: 'inactive' as const,
-        photoUrl: profileImage,
-      };
+      try { data = JSON.parse(text); } catch { data = {}; }
+      console.log('Parsed data:', JSON.stringify(data));
 
-      setUser(registeredUser);
-      setProvider(registeredProvider);
-      console.log('Provider registered successfully', { user: registeredUser, provider: registeredProvider });
-      setLoading(false);
-      
-      // Navigate to subscription payment
-      router.push('/subscription-payment');
-    } catch (error) {
-      console.error('Provider registration error:', error);
-      setLoading(false);
-      
-      let errorMessage = 'Failed to register. Please try again.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        
-        if (errorMessage.includes('JSON') || errorMessage.includes('Unexpected character')) {
-          errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
-        }
+      if (response.ok) {
+        const registeredUser = {
+          id: data.user?.id ?? '',
+          email: data.user?.email ?? email,
+          userType: (data.user?.userType ?? 'provider') as 'provider',
+          firstName,
+          lastName,
+          county: selectedCounty.countyName,
+        };
+        const registeredProvider = {
+          id: data.provider?.id ?? '',
+          providerCode: data.provider?.providerCode ?? '',
+          gender,
+          phoneNumber,
+          subscriptionStatus: 'inactive' as const,
+          photoUrl: profileImage,
+        };
+        setUser(registeredUser);
+        setProvider(registeredProvider);
+        console.log('Provider registered successfully', { user: registeredUser, provider: registeredProvider });
+        setLoading(false);
+        router.push('/subscription-payment');
+        return;
       }
-      
-      Alert.alert('Registration Failed', errorMessage);
+
+      const msg: string = data.message || data.error || `Server error ${response.status}`;
+      console.log('Provider registration failed:', response.status, msg);
+      setLoading(false);
+      Alert.alert('Registration Failed', msg);
+    } catch (networkErr: any) {
+      console.log('Network error:', networkErr);
+      setLoading(false);
+      Alert.alert('Connection Error', 'Please check your internet connection and try again.');
     }
   };
 

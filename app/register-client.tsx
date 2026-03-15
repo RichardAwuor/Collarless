@@ -56,7 +56,8 @@ export default function RegisterClientScreen() {
   };
 
   const handleRegister = async () => {
-    console.log('[RegisterClient] Register button pressed', { email, firstName, lastName, county: selectedCounty });
+    console.log('Register button pressed');
+    console.log('Submitting registration with:', { firstName, lastName, email, county: selectedCounty });
 
     if (!email || !confirmEmail || !firstName || !lastName) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -74,58 +75,53 @@ export default function RegisterClientScreen() {
     setEmailMismatch(false);
     setLoading(true);
 
-    try {
-      console.log('[RegisterClient] POST /api/users/register-client', { email: emailTrimmed, firstName, lastName, county: selectedCounty });
+    const BASE_URL = 'https://9rs686wkexp8cbxgtddvuzrpcv4x9xn8.app.specular.dev';
+    const requestBody = {
+      email: emailTrimmed,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      county: selectedCounty,
+    };
+    console.log('POST', `${BASE_URL}/api/users/register-client`);
+    console.log('Request body:', JSON.stringify(requestBody));
 
-      const url = `${BACKEND_URL}/api/users/register-client`;
-      const response = await fetch(url, {
+    let data: any = {};
+    try {
+      const response = await fetch(`${BASE_URL}/api/users/register-client`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailTrimmed, firstName: firstName.trim(), lastName: lastName.trim(), county: selectedCounty }),
+        body: JSON.stringify(requestBody),
       });
 
-      const responseText = await response.text();
-      console.log(`[RegisterClient] Raw response (${response.status}):`, responseText.substring(0, 500));
+      console.log('Response status:', response.status);
 
-      let data: any = {};
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        // Non-JSON response
-        if (response.ok) {
-          // Treat as success even if body isn't JSON
-          data = {};
-        } else {
-          throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
-        }
+      const text = await response.text();
+      console.log('Raw response text:', text);
+
+      try { data = JSON.parse(text); } catch { data = {}; }
+      console.log('Parsed data:', JSON.stringify(data));
+
+      if (response.ok) {
+        console.log('Registration successful, navigating to /post-gig');
+        const userPayload = data.user ?? data;
+        setUser({
+          id: userPayload.id ?? '',
+          email: userPayload.email ?? emailTrimmed,
+          userType: 'client',
+          firstName: userPayload.firstName ?? firstName.trim(),
+          lastName: userPayload.lastName ?? lastName.trim(),
+          county: userPayload.county ?? selectedCounty,
+        });
+        router.replace('/post-gig');
+        return;
       }
 
-      console.log('[RegisterClient] Registration response:', response.status, data);
-
-      if (!response.ok) {
-        const serverMsg: string = data?.message || data?.error || response.statusText || '';
-        console.log('[RegisterClient] Registration failed:', response.status, serverMsg);
-        throw new Error(serverMsg || `Registration failed with status ${response.status}`);
-      }
-
-      console.log('[RegisterClient] Registration successful', data);
-
-      // Support both { user: { ... } } and flat { id, email, ... } response shapes
-      const userPayload = data.user ?? data;
-      setUser({
-        id: userPayload.id ?? '',
-        email: userPayload.email ?? emailTrimmed,
-        userType: 'client',
-        firstName: userPayload.firstName ?? firstName.trim(),
-        lastName: userPayload.lastName ?? lastName.trim(),
-        county: userPayload.county ?? selectedCounty,
-      });
-
-      router.replace('/post-gig');
-    } catch (error) {
-      console.log('[RegisterClient] Registration error:', error);
-      const friendlyMessage = parseRegistrationError(error);
-      Alert.alert('Registration Failed', friendlyMessage);
+      const msg: string = data.message || data.error || `Server error ${response.status}`;
+      console.log('Registration failed:', response.status, msg);
+      Alert.alert('Registration Failed', msg);
+    } catch (networkErr: any) {
+      console.log('Network error:', networkErr);
+      Alert.alert('Connection Error', 'Please check your internet connection and try again.');
     } finally {
       setLoading(false);
     }
