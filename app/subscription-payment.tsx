@@ -91,7 +91,7 @@ export default function SubscriptionPaymentScreen() {
   const borderColor = isDark ? colors.borderDark : colors.border;
 
   const subscriptionAmount = 130;
-  const merchantNumber = '4523859'; // Production go-live Short Code
+  const merchantNumber = '8937121'; // Production go-live Short Code
 
   const showMessage = (title: string, message: string, error: boolean = false) => {
     setModalTitle(title);

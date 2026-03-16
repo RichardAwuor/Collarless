@@ -78,13 +78,13 @@ export default function PaymentSimulatorScreen() {
 
   const [loading, setLoading] = useState(false);
   
-  // Form fields with default values from the provided JSON
+  // Form fields with default values
   const [password, setPassword] = useState('MTc0Mzc5YmZiMjc5ZjlhYTliZGJjZjE1OGU5N2RkNzFhNDY3Y2QyZTBjODkzMDU5YjEwZjc4ZTZiNzJhZGExZWQyYzkxOTIwMjYwMjAzMjMxNTE5');
-  const [businessShortCode, setBusinessShortCode] = useState('174379');
+  const [businessShortCode, setBusinessShortCode] = useState('8937121');
   const [timestamp, setTimestamp] = useState('20260203231519');
   const [amount, setAmount] = useState('1');
   const [partyA, setPartyA] = useState('254708374149');
-  const [partyB, setPartyB] = useState('174379');
+  const [partyB, setPartyB] = useState('8937121');
   const [transactionType, setTransactionType] = useState('CustomerPayBillOnline');
   const [phoneNumber, setPhoneNumber] = useState('254708374149');
   const [transactionDesc, setTransactionDesc] = useState('Test');
@@ -202,11 +202,11 @@ export default function PaymentSimulatorScreen() {
   const handleReset = () => {
     console.log('Resetting form to default values');
     setPassword('MTc0Mzc5YmZiMjc5ZjlhYTliZGJjZjE1OGU5N2RkNzFhNDY3Y2QyZTBjODkzMDU5YjEwZjc4ZTZiNzJhZGExZWQyYzkxOTIwMjYwMjAzMjMxNTE5');
-    setBusinessShortCode('174379');
+    setBusinessShortCode('8937121');
     setTimestamp('20260203231519');
     setAmount('1');
     setPartyA('254708374149');
-    setPartyB('174379');
+    setPartyB('8937121');
     setTransactionType('CustomerPayBillOnline');
     setPhoneNumber('254708374149');
     setTransactionDesc('Test');
@@ -273,7 +273,7 @@ export default function PaymentSimulatorScreen() {
             style={[styles.input, { backgroundColor: cardColor, color: textColor }]}
             value={businessShortCode}
             onChangeText={setBusinessShortCode}
-            placeholder="174379"
+            placeholder="8937121"
             placeholderTextColor={isDark ? '#888' : '#999'}
             keyboardType="numeric"
           />
@@ -342,7 +342,7 @@ export default function PaymentSimulatorScreen() {
             style={[styles.input, { backgroundColor: cardColor, color: textColor }]}
             value={partyB}
             onChangeText={setPartyB}
-            placeholder="174379"
+            placeholder="8937121"
             placeholderTextColor={isDark ? '#888' : '#999'}
             keyboardType="numeric"
           />
