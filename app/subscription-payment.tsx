@@ -25,6 +25,18 @@ function resolveImageSource(source: string | number | ImageSourcePropType | unde
   return source as ImageSourcePropType;
 }
 
+// Normalize a phone number to 2547XXXXXXXX format (12 digits, no + prefix)
+function formatMsisdn(phone: string): string {
+  // Strip spaces, dashes, parentheses, and + characters
+  let cleaned = phone.replace(/[\s\-\(\)\+]/g, '');
+  // Replace leading 0 with 254
+  if (cleaned.startsWith('0')) {
+    cleaned = '254' + cleaned.slice(1);
+  }
+  // Already correct format
+  return cleaned;
+}
+
 // Custom Modal for messages
 function MessageModal({ visible, title, message, onClose, isError }: {
   visible: boolean;
@@ -35,7 +47,6 @@ function MessageModal({ visible, title, message, onClose, isError }: {
 }) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const bgColor = isDark ? colors.backgroundDark : colors.background;
   const textColor = isDark ? colors.textDark : colors.text;
   const cardColor = isDark ? colors.cardDark : colors.card;
 
@@ -108,10 +119,18 @@ export default function SubscriptionPaymentScreen() {
       return;
     }
 
-    // Get phone number from provider
-    const phoneNumber = provider.phoneNumber;
-    if (!phoneNumber) {
+    // Get phone number from provider and normalize to 2547XXXXXXXX
+    const rawPhone = provider.phoneNumber;
+    if (!rawPhone) {
       showMessage('Error', 'Phone number not found. Please update your profile.', true);
+      return;
+    }
+
+    const phoneNumber = formatMsisdn(rawPhone);
+    console.log(`Phone formatted: ${rawPhone} -> ${phoneNumber}`);
+
+    if (!/^2547\d{8}$/.test(phoneNumber)) {
+      showMessage('Error', `Invalid phone number format (${phoneNumber}). Please use a Safaricom number starting with 07 or 2547.`, true);
       return;
     }
 
