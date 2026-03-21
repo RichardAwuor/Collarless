@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -93,6 +93,15 @@ export default function SubscriptionPaymentScreen() {
   const [modalMessage, setModalMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   console.log('Subscription payment screen loaded');
 
@@ -210,7 +219,7 @@ export default function SubscriptionPaymentScreen() {
       let attempts = 0;
       const maxAttempts = 20;
       
-      const pollInterval = setInterval(async () => {
+      intervalRef.current = setInterval(async () => {
         attempts++;
         
         try {
@@ -221,7 +230,9 @@ export default function SubscriptionPaymentScreen() {
             console.log('Payment status:', statusData);
             
             if (statusData.status === 'completed') {
-              clearInterval(pollInterval);
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              
+              if (!isMounted.current) return;
               
               // Update provider subscription status
               if (setProvider && provider) {
@@ -239,11 +250,13 @@ export default function SubscriptionPaymentScreen() {
               
               // Navigate to Take-A-Gig screen
               setTimeout(() => {
+                if (!isMounted.current) return;
                 console.log('Navigating to Take-A-Gig screen');
                 router.replace('/(tabs)/(home)');
               }, 2000);
             } else if (statusData.status === 'failed') {
-              clearInterval(pollInterval);
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              if (!isMounted.current) return;
               showMessage(
                 'Payment Failed',
                 statusData.resultDesc || 'Payment was not completed. Please try again.',
@@ -257,8 +270,11 @@ export default function SubscriptionPaymentScreen() {
         
         // Stop polling after max attempts
         if (attempts >= maxAttempts) {
-          clearInterval(pollInterval);
+          if (intervalRef.current) clearInterval(intervalRef.current);
           console.log('Payment status polling timed out');
+          if (isMounted.current) {
+            showMessage('Payment Timeout', 'Could not confirm payment status. Please check your M-Pesa messages.', true);
+          }
         }
       }, 3000);
     } catch (error) {
