@@ -1,34 +1,23 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { scryptSync, randomBytes } from 'crypto';
 import * as schema from '../db/schema.js';
 import type { App } from '../index.js';
 import { encryptIdentity } from '../utils/encryption.js';
-
-// Hash password using scrypt (built-in Node.js crypto)
-function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const hash = scryptSync(password, salt, 64).toString('hex');
-  return `${salt}:${hash}`;
-}
 
 export function registerUserRoutes(app: App, fastify: FastifyInstance) {
   // POST /api/users/register-client
   fastify.post('/api/users/register-client', {
     schema: {
-      description: 'Register a new client user',
+      description: 'Register a new client user (passwordless)',
       tags: ['users'],
       body: {
         type: 'object',
-        required: ['email', 'firstName', 'lastName', 'county', 'password'],
+        required: ['email', 'firstName', 'lastName', 'county'],
         properties: {
           email: { type: 'string', format: 'email' },
           firstName: { type: 'string' },
           lastName: { type: 'string' },
           county: { type: 'string' },
-          password: { type: 'string' },
-          organizationName: { type: 'string' },
-          isOrganization: { type: 'boolean', default: false },
         },
       },
       response: {
@@ -40,10 +29,17 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
             email: { type: 'string' },
             firstName: { type: 'string' },
             lastName: { type: 'string' },
+            county: { type: 'string' },
             userType: { type: 'string' },
+            emailConfirmed: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
           },
         },
         400: {
+          type: 'object',
+          properties: { error: { type: 'string' } },
+        },
+        409: {
           type: 'object',
           properties: { error: { type: 'string' } },
         },
@@ -60,34 +56,28 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
         firstName?: string;
         lastName?: string;
         county?: string;
-        password?: string;
-        organizationName?: string;
-        isOrganization?: boolean;
       };
     }>,
     reply: FastifyReply
   ) => {
-    const {
-      email,
-      firstName,
-      lastName,
-      county,
-      password,
-      organizationName,
-      isOrganization = false,
-    } = request.body;
+    const { email, firstName, lastName, county } = request.body;
 
     app.logger.info({ email, firstName, lastName, county }, 'Registering client');
 
     try {
       // Validate required fields
-      if (!firstName || !lastName || !email || !county || !password) {
+      if (!firstName || !lastName || !email || !county) {
         app.logger.warn(
-          { email, hasfirstName: !!firstName, hasLastName: !!lastName, hasCounty: !!county, hasPassword: !!password },
+          {
+            email,
+            hasFirstName: !!firstName,
+            hasLastName: !!lastName,
+            hasCounty: !!county,
+          },
           'Client registration: missing required fields'
         );
         return reply.status(400).send({
-          error: 'Please provide all required fields: first name, last name, email, county, and password',
+          error: 'Please provide all required fields: first name, last name, email, and county',
         });
       }
 
@@ -100,14 +90,6 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
         });
       }
 
-      // Validate password length
-      if (password.length < 6) {
-        app.logger.warn({ email }, 'Client registration: password too short');
-        return reply.status(400).send({
-          error: 'Password must be at least 6 characters long',
-        });
-      }
-
       // Check if email already exists
       const existingUser = await app.db
         .select()
@@ -116,30 +98,20 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
 
       if (existingUser.length > 0) {
         app.logger.warn({ email }, 'Client registration: email already exists');
-        return reply.status(400).send({
+        return reply.status(409).send({
           error: 'An account with this email already exists',
         });
       }
 
-      // Hash password
-      const passwordHash = hashPassword(password);
-      app.logger.debug({ email }, 'Password hashed');
-
-      // Create user with password hash if the column exists in the schema
-      const userValues: any = {
+      // Create user
+      const userValues = {
         email,
         firstName,
         lastName,
         county,
-        organizationName: isOrganization ? organizationName || null : null,
         userType: 'client',
         emailConfirmed: false,
       };
-
-      // Add password hash if the field is available in the schema
-      if ('passwordHash' in schema.users) {
-        (userValues as any).passwordHash = passwordHash;
-      }
 
       const [user] = await app.db
         .insert(schema.users)
@@ -153,7 +125,10 @@ export function registerUserRoutes(app: App, fastify: FastifyInstance) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        county: user.county,
         userType: user.userType,
+        emailConfirmed: user.emailConfirmed,
+        createdAt: user.createdAt,
       });
     } catch (error: any) {
       app.logger.error({ err: error, email }, 'Failed to register client');
