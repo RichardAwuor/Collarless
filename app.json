@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Nyota-KE",
-    "slug": "nyota-ke",
-    "version": "1.0.38",
+    "slug": "nyota",
+    "version": "1.0.39",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -25,8 +25,8 @@
         "foregroundImage": "./assets/images/aa2d6aa2-75c6-46b7-9fc0-8f9933dd61d9.png",
         "backgroundColor": "#00D98E"
       },
-      "package": "com.simphoni.nyota",
-      "versionCode": 39
+      "package": "com.nyota-ke.app",
+      "versionCode": 40
     },
     "web": {
       "favicon": "./assets/images/8ef275bc-8f51-4955-80a7-99df5ae572b7.png",
@@ -43,7 +43,7 @@
     },
     "extra": {
       "router": {},
-      "backendUrl": "https://prod-proj-2nybuz8fbmvczltakxgen-liwg5h36mq-ey.a.run.app",
+      "backendUrl": "https://8bj23e5x7s7yg8fkb49dvks9n3gfwat7.app.specular.dev",
       "mpesaShortCode": "4523859"
     }
   }
